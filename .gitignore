@@ -1,1 +1,5 @@
 .venv/
+Datasets/
+*.parquet
+pdf_report_maps/
+pdf_report_maps_zscores/
