@@ -1,6 +1,5 @@
 from dash import Input, Output, State, dash, ctx, Patch
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
 
@@ -8,121 +7,138 @@ from data import GDF_MASTER, DF_FORECAST, DF_HISTORICAL, CRIME_AXES, MOMENTUM_AX
 
 
 def register_callbacks(app):
+
     @app.callback(
-        Output('url', 'href'),
-        Input('reset-btn', 'n_clicks'),
+        Output("url", "href"),
+        Input("reset-btn", "n_clicks"),
         prevent_initial_call=True
     )
     def reset_dashboard(n):
-        if n > 0: return '/'
+        if n > 0:
+            return "/"
         return dash.no_update
 
     @app.callback(
         Output("selected-lsoas", "data"),
         Input("interactive-map", "selectedData"),
         Input("pcp-graph", "restyleData"),
-        Input("distribution-boxplot", "selectedData"),  # NEW: Listen to the boxplot lasso!
+        Input("distribution-boxplot", "selectedData"),
         State("selected-lsoas", "data"),
         State("pcp-mode-toggle", "value"),
         State("month-slider", "value"),
         prevent_initial_call=True
     )
-    def update_global_selection(map_selection, pcp_restyle, boxplot_selection, current_lsoas, pcp_mode, month_value):
+    def update_global_selection(
+        map_selection,
+        pcp_restyle,
+        boxplot_selection,
+        current_lsoas,
+        pcp_mode,
+        month_value
+    ):
         trigger = ctx.triggered_id
 
-        # 1. MAP OR BOXPLOT BRUSHING
-        # Because we added custom_data to the boxplot, the extraction logic is identical
         if trigger in ["interactive-map", "distribution-boxplot"]:
-            # Figure out which graph the user actually touched
             selection_data = map_selection if trigger == "interactive-map" else boxplot_selection
 
-            if selection_data and 'points' in selection_data:
-                return [pt['customdata'][0] for pt in selection_data['points']]
+            if selection_data and "points" in selection_data:
+                return [pt["customdata"][0] for pt in selection_data["points"]]
+
             return []
 
-        # 2. PCP FILTERING
         elif trigger == "pcp-graph":
-            if not pcp_restyle or not pcp_restyle[0]: return dash.no_update
+            if not pcp_restyle or not pcp_restyle[0]:
+                return dash.no_update
 
-            df_filtered = GDF_MASTER[GDF_MASTER['LSOA_ID'].isin(current_lsoas)] if current_lsoas else GDF_MASTER.copy()
+            if current_lsoas:
+                df_filtered = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(current_lsoas)]
+            else:
+                df_filtered = GDF_MASTER.copy()
 
-            # --- THE FIX ---
-            # Strip the ambiguous index label before merging
             df_filtered = df_filtered.reset_index(drop=True)
 
-            # Calculate the specific month's yhat on the fly for filtering
-            df_month = DF_FORECAST[pd.to_datetime(DF_FORECAST['ds']).dt.month == month_value]
-            month_yhat = df_month.groupby('LSOA_ID')['yhat'].mean().reset_index()
-            month_yhat.rename(columns={'yhat': 'target_month_yhat'}, inplace=True)
+            df_month = DF_FORECAST[pd.to_datetime(DF_FORECAST["ds"]).dt.month == month_value]
+            month_yhat = df_month.groupby("LSOA_ID")["yhat"].mean().reset_index()
+            month_yhat.rename(columns={"yhat": "target_month_yhat"}, inplace=True)
 
-            df_filtered = df_filtered.merge(month_yhat, on='LSOA_ID', how='left').fillna(0)
+            df_filtered = df_filtered.merge(month_yhat, on="LSOA_ID", how="left").fillna(0)
 
-            active_columns = MOMENTUM_AXES + ['target_month_yhat'] if pcp_mode == 'momentum' else CRIME_AXES + [
-                'target_month_yhat']
+            if pcp_mode == "momentum":
+                active_columns = MOMENTUM_AXES + ["target_month_yhat"]
+            else:
+                active_columns = CRIME_AXES + ["target_month_yhat"]
+
             changes = pcp_restyle[0]
 
             for key, value in changes.items():
                 if "constraintrange" in key:
-                    dim_index = int(key.split('[')[1].split(']')[0])
+                    dim_index = int(key.split("[")[1].split("]")[0])
+
                     if dim_index < len(active_columns):
                         col_name = active_columns[dim_index]
+
                         if value:
                             v = value[0]
-                            if not isinstance(v[0], list): v = [v]
+
+                            if not isinstance(v[0], list):
+                                v = [v]
+
                             mask = pd.Series(False, index=df_filtered.index)
+
                             for r in v:
-                                if len(r) == 2: mask = mask | (
-                                        (df_filtered[col_name] >= r[0]) & (df_filtered[col_name] <= r[1]))
+                                if len(r) == 2:
+                                    mask = mask | (
+                                        (df_filtered[col_name] >= r[0])
+                                        & (df_filtered[col_name] <= r[1])
+                                    )
+
                             df_filtered = df_filtered[mask]
-            return df_filtered['LSOA_ID'].tolist()
+
+            return df_filtered["LSOA_ID"].tolist()
 
         return dash.no_update
+
     @app.callback(
         Output("interactive-map", "figure"),
         Input("map-view-toggle", "value"),
         Input("month-slider", "value"),
         Input("selected-lsoas", "data"),
-        prevent_initial_call=True  # CRITICAL: Prevents overwriting the pre-compiled map on startup
+        prevent_initial_call=True
     )
     def update_map(view_mode, month_value, selected_lsoas):
-        # Initialize the Dash Sniper Tool (Patch)
         patched_map = Patch()
-
-        # 1. Figure out what triggered the update
         trigger = ctx.triggered_id
 
-        # 2. IF THE SLIDER OR TOGGLE MOVED: Update the colors!
         if trigger in ["map-view-toggle", "month-slider"] or trigger is None:
             month_str = f"0{month_value}"
 
-            if view_mode == 'severity':
-                color_col = f'z_score_{month_str}'
+            if view_mode == "severity":
+                color_col = f"z_score_{month_str}"
 
-                # We only send the new Z-Scores and the color rules to the browser
-                patched_map['data'][0]['z'] = GDF_MASTER[color_col]
-                patched_map['data'][0]['colorscale'] = "RdBu_r"
-                patched_map['data'][0]['cmin'] = -3
-                patched_map['data'][0]['cmax'] = 3
+                patched_map["data"][0]["z"] = GDF_MASTER[color_col]
+                patched_map["data"][0]["colorscale"] = "RdBu_r"
+                patched_map["data"][0]["cmin"] = -3
+                patched_map["data"][0]["cmax"] = 3
+
             else:
-                # Calculate uncertainty on the fly if needed
-                if 'uncertainty' not in GDF_MASTER.columns:
-                    GDF_MASTER['uncertainty'] = GDF_MASTER['yhat_upper'] - GDF_MASTER['yhat_lower']
+                if "uncertainty" not in GDF_MASTER.columns:
+                    GDF_MASTER["uncertainty"] = GDF_MASTER["yhat_upper"] - GDF_MASTER["yhat_lower"]
 
-                patched_map['data'][0]['z'] = GDF_MASTER['uncertainty']
-                patched_map['data'][0]['colorscale'] = "Purples"
-                patched_map['data'][0]['cmin'] = GDF_MASTER['uncertainty'].min()
-                patched_map['data'][0]['cmax'] = GDF_MASTER['uncertainty'].max()
+                patched_map["data"][0]["z"] = GDF_MASTER["uncertainty"]
+                patched_map["data"][0]["colorscale"] = "Purples"
+                patched_map["data"][0]["cmin"] = GDF_MASTER["uncertainty"].min()
+                patched_map["data"][0]["cmax"] = GDF_MASTER["uncertainty"].max()
 
-        # 3. IF THE USER BRUSHED/FILTERED: Update the dimming!
         if trigger == "selected-lsoas" or selected_lsoas:
             if selected_lsoas:
-                # Plotly needs the exact row numbers (indices) to highlight them.
-                # This perfectly matches the order of GDF_MASTER used to compile the map.
-                selected_indices = [i for i, lsoa in enumerate(GDF_MASTER['LSOA_ID']) if lsoa in selected_lsoas]
-                patched_map['data'][0]['selectedpoints'] = selected_indices
+                selected_set = set(selected_lsoas)
+                selected_indices = [
+                    i for i, lsoa in enumerate(GDF_MASTER["LSOA_ID"])
+                    if lsoa in selected_set
+                ]
+                patched_map["data"][0]["selectedpoints"] = selected_indices
             else:
-                # If they clear the filter, clear the dimming (set to None)
-                patched_map['data'][0]['selectedpoints'] = None
+                patched_map["data"][0]["selectedpoints"] = None
 
         return patched_map
 
@@ -132,26 +148,75 @@ def register_callbacks(app):
         Input("month-slider", "value")
     )
     def update_distribution(selected_lsoas, month_value):
-        df_month = DF_FORECAST[pd.to_datetime(DF_FORECAST['ds']).dt.month == month_value].copy()
+        df_month = DF_FORECAST[pd.to_datetime(DF_FORECAST["ds"]).dt.month == month_value].copy()
 
-        # RENAME FOR CLEAN HOVER TEXT
-        df_month.rename(columns={'yhat': 'Predicted Crime Intensity Score'}, inplace=True)
+        df_month.rename(columns={"yhat": "Predicted Crime Intensity Score"}, inplace=True)
 
-        plot_df = df_month[df_month['LSOA_ID'].isin(selected_lsoas)] if selected_lsoas else df_month
+        if selected_lsoas:
+            plot_df = df_month[df_month["LSOA_ID"].isin(selected_lsoas)]
+        else:
+            plot_df = df_month
 
         if plot_df.empty:
-            return go.Figure().update_layout(template="simple_white", title="No data")
+            return go.Figure().update_layout(
+                template="simple_white",
+                title="No data",
+                paper_bgcolor="white",
+                plot_bgcolor="white"
+            )
 
-        fig = px.box(plot_df, y='Predicted Crime Intensity Score', points="all", template="simple_white",
-                     custom_data=['LSOA_ID'])
-        fig.update_yaxes(type="linear")
+        if selected_lsoas and len(selected_lsoas) <= 500:
+            point_mode = "all"
+        else:
+            point_mode = "outliers"
 
-        # THE FIX: uirevision='constant' prevents the plot from resetting its lasso selection when redrawn
-        fig.update_layout(
-            margin=dict(l=40, r=20, t=40, b=20),
-            dragmode='select',
-            uirevision='constant'
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Box(
+                y=plot_df["Predicted Crime Intensity Score"],
+                customdata=plot_df[["LSOA_ID"]],
+                boxpoints=point_mode,
+                marker=dict(
+                    size=4,
+                    opacity=0.45
+                ),
+                line=dict(width=1.5),
+                fillcolor="rgba(36, 92, 151, 0.12)",
+                name="",
+                hoveron="points",
+                hovertemplate=(
+                    "Area code: %{customdata[0]}<br>"
+                    "Predicted intensity: %{y:,.2f}"
+                    "<extra></extra>"
+                )
+            )
         )
+
+        fig.update_layout(
+            template="simple_white",
+            margin=dict(l=55, r=25, t=20, b=35),
+            dragmode="select",
+            uirevision="constant",
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            font=dict(family="Arial", size=12, color="#1f2d3d"),
+            yaxis_title="Predicted Intensity",
+            xaxis_title=None,
+            showlegend=False,
+            hovermode="closest"
+        )
+
+        fig.update_yaxes(
+            gridcolor="#edf1f7",
+            zerolinecolor="#dfe6ef",
+            tickformat=",.0f"
+        )
+
+        fig.update_xaxes(
+            showticklabels=False
+        )
+
         return fig
 
     @app.callback(
@@ -161,70 +226,155 @@ def register_callbacks(app):
         Input("selected-time-window", "data")
     )
     def update_table(selected_lsoas, time_window):
-        plot_df = GDF_MASTER[GDF_MASTER['LSOA_ID'].isin(selected_lsoas)] if selected_lsoas else GDF_MASTER.sort_values(
-            'yhat', ascending=False).head(100)
+        if selected_lsoas:
+            plot_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)]
+        else:
+            plot_df = GDF_MASTER.sort_values("yhat", ascending=False).head(100)
 
         if time_window:
             start_date, end_date = time_window
-            DF_HISTORICAL['Date'] = pd.to_datetime(DF_HISTORICAL['Month'])
-            mask = (DF_HISTORICAL['Date'] >= start_date) & (DF_HISTORICAL['Date'] <= end_date)
-            if selected_lsoas: mask = mask & (DF_HISTORICAL['LSOA_ID'].isin(selected_lsoas))
-            filtered_df = DF_HISTORICAL[mask].groupby('LSOA_ID')['Total_CII_Score'].mean().reset_index()
-            filtered_df.rename(columns={'Total_CII_Score': 'Intensity'}, inplace=True)
-            name_map = GDF_MASTER[['LSOA_ID', 'LSOA_NAME']].drop_duplicates().reset_index(drop=True)
-            filtered_df = filtered_df.merge(name_map, on='LSOA_ID')
-            display_cols = ['LSOA_NAME', 'LSOA_ID', 'Intensity']
-        else:
-            # RENAME COLUMNS FOR THE UI
-            filtered_df = plot_df.rename(columns={
-                'yhat': 'Predicted Crime Intensity Score',
-                'yhat_lower': 'Lower Certainty Bound',
-                'yhat_upper': 'Upper Certainty Bound'
-            })
-            display_cols = ['LSOA_NAME', 'LSOA_ID', 'Predicted Crime Intensity Score', 'Lower Certainty Bound',
-                            'Upper Certainty Bound']
 
-        return filtered_df[display_cols].round(2).to_dict('records'), [{"name": i, "id": i} for i in display_cols]
+            df_hist = DF_HISTORICAL.copy()
+            df_hist["Date"] = pd.to_datetime(df_hist["Month"])
+
+            mask = (df_hist["Date"] >= start_date) & (df_hist["Date"] <= end_date)
+
+            if selected_lsoas:
+                mask = mask & (df_hist["LSOA_ID"].isin(selected_lsoas))
+
+            filtered_df = df_hist[mask].groupby("LSOA_ID")["Total_CII_Score"].mean().reset_index()
+            filtered_df.rename(columns={"Total_CII_Score": "Intensity"}, inplace=True)
+
+            name_map = GDF_MASTER[["LSOA_ID", "LSOA_NAME"]].drop_duplicates().reset_index(drop=True)
+            filtered_df = filtered_df.merge(name_map, on="LSOA_ID")
+
+            display_cols = ["LSOA_NAME", "LSOA_ID", "Intensity"]
+
+        else:
+            filtered_df = plot_df.rename(
+                columns={
+                    "yhat": "Predicted Crime Intensity Score",
+                    "yhat_lower": "Lower Certainty Bound",
+                    "yhat_upper": "Upper Certainty Bound"
+                }
+            )
+
+            display_cols = [
+                "LSOA_NAME",
+                "LSOA_ID",
+                "Predicted Crime Intensity Score",
+                "Lower Certainty Bound",
+                "Upper Certainty Bound"
+            ]
+
+        filtered_df = filtered_df[display_cols].round(2)
+
+        pretty_names = {
+            "LSOA_NAME": "Area Name",
+            "LSOA_ID": "Area Code",
+            "Predicted Crime Intensity Score": "Predicted Intensity",
+            "Lower Certainty Bound": "Lower Bound",
+            "Upper Certainty Bound": "Upper Bound",
+            "Intensity": "Historical Intensity"
+        }
+
+        columns = []
+
+        for col in display_cols:
+            if col in ["LSOA_NAME", "LSOA_ID"]:
+                columns.append(
+                    {
+                        "name": pretty_names.get(col, col),
+                        "id": col,
+                        "type": "text"
+                    }
+                )
+            else:
+                columns.append(
+                    {
+                        "name": pretty_names.get(col, col),
+                        "id": col,
+                        "type": "numeric",
+                        "format": {"specifier": ",.2f"}
+                    }
+                )
+
+        return filtered_df.to_dict("records"), columns
 
     @app.callback(
         Output("pcp-graph", "figure"),
         Input("pcp-mode-toggle", "value"),
         Input("selected-lsoas", "data"),
-        Input("month-slider", "value")  # NEW: Listen to the slider
+        Input("month-slider", "value")
     )
     def update_pcp(mode, selected_lsoas, month_value):
         if GDF_MASTER is None or GDF_MASTER.empty:
-            return go.Figure().update_layout(template="simple_white", title="Loading...")
+            return go.Figure().update_layout(
+                template="simple_white",
+                title="Loading..."
+            )
 
-        plot_df = GDF_MASTER[GDF_MASTER['LSOA_ID'].isin(selected_lsoas)] if selected_lsoas else GDF_MASTER.copy()
-        # --- THE FIX ---
-        # Strip the ambiguous index label before merging
+        if selected_lsoas:
+            plot_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)]
+        else:
+            plot_df = GDF_MASTER.copy()
+
         plot_df = plot_df.reset_index(drop=True)
 
-        # Merge the specific month's prediction to color the lines correctly
-        df_month = DF_FORECAST[pd.to_datetime(DF_FORECAST['ds']).dt.month == month_value]
-        month_yhat = df_month.groupby('LSOA_ID')['yhat'].mean().reset_index()
-        month_yhat.rename(columns={'yhat': 'target_month_yhat'}, inplace=True)
+        df_month = DF_FORECAST[pd.to_datetime(DF_FORECAST["ds"]).dt.month == month_value]
+        month_yhat = df_month.groupby("LSOA_ID")["yhat"].mean().reset_index()
+        month_yhat.rename(columns={"yhat": "target_month_yhat"}, inplace=True)
 
-        plot_df = plot_df.merge(month_yhat, on='LSOA_ID', how='left')
-        plot_df['target_month_yhat'] = plot_df['target_month_yhat'].fillna(0)
+        plot_df = plot_df.merge(month_yhat, on="LSOA_ID", how="left")
+        plot_df["target_month_yhat"] = plot_df["target_month_yhat"].fillna(0)
         plot_df = plot_df.replace([np.inf, -np.inf], 0).fillna(0)
 
-        # Decide which axes to show. Add the target month prediction to the end of BOTH modes!
-        axes = MOMENTUM_AXES + ['target_month_yhat'] if mode == 'momentum' else CRIME_AXES + ['target_month_yhat']
+        if mode == "momentum":
+            axes = MOMENTUM_AXES + ["target_month_yhat"]
+        else:
+            axes = CRIME_AXES + ["target_month_yhat"]
+
+        if not selected_lsoas and len(plot_df) > 1500:
+            plot_df = plot_df.sort_values("target_month_yhat", ascending=False).head(1500)
+
         dimensions = []
 
         for col in axes:
             max_val = plot_df[col].quantile(0.98)
-            # Make the axis label readable in the UI
-            label_text = f"Predicted (Month {month_value})" if col == 'target_month_yhat' else str(col)
-            dimensions.append(dict(label=label_text, values=plot_df[col], range=[0, max(max_val, 1)]))
 
-        fig = go.Figure(data=go.Parcoords(
-            line=dict(color=plot_df['target_month_yhat'], colorscale='Reds'),
-            dimensions=dimensions
-        ))
-        fig.update_layout(margin=dict(l=40, r=40, t=40, b=20), paper_bgcolor="white")
+            if col == "target_month_yhat":
+                label_text = f"Predicted {month_value}/2026"
+            else:
+                label_text = str(col)
+
+            dimensions.append(
+                dict(
+                    label=label_text,
+                    values=plot_df[col],
+                    range=[0, max(max_val, 1)]
+                )
+            )
+
+        fig = go.Figure(
+            data=go.Parcoords(
+                line=dict(
+                    color=plot_df["target_month_yhat"],
+                    colorscale="Reds",
+                    showscale=False
+                ),
+                dimensions=dimensions,
+                labelfont=dict(size=12, color="#1f2d3d"),
+                tickfont=dict(size=10, color="#334155")
+            )
+        )
+
+        fig.update_layout(
+            margin=dict(l=35, r=35, t=20, b=20),
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            font=dict(family="Arial", size=12, color="#1f2d3d")
+        )
+
         return fig
 
     @app.callback(
@@ -232,31 +382,68 @@ def register_callbacks(app):
         Input("selected-lsoas", "data")
     )
     def update_timeseries(selected_lsoas):
-        hist_df = DF_HISTORICAL[DF_HISTORICAL['LSOA_ID'].isin(selected_lsoas)] if selected_lsoas else DF_HISTORICAL
-        fore_df = DF_FORECAST[DF_FORECAST['LSOA_ID'].isin(selected_lsoas)] if selected_lsoas else DF_FORECAST
+        if selected_lsoas:
+            hist_df = DF_HISTORICAL[DF_HISTORICAL["LSOA_ID"].isin(selected_lsoas)]
+            fore_df = DF_FORECAST[DF_FORECAST["LSOA_ID"].isin(selected_lsoas)]
+        else:
+            hist_df = DF_HISTORICAL
+            fore_df = DF_FORECAST
 
-        hist_agg = hist_df.groupby('Month')['Total_CII_Score'].mean().reset_index()
-        fore_agg = fore_df.groupby('ds')[['yhat', 'yhat_lower', 'yhat_upper']].mean().reset_index()
+        hist_agg = hist_df.groupby("Month")["Total_CII_Score"].mean().reset_index()
+        fore_agg = fore_df.groupby("ds")[["yhat", "yhat_lower", "yhat_upper"]].mean().reset_index()
 
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=hist_agg['Month'], y=hist_agg['Total_CII_Score'], mode='lines', name='Baseline'))
 
-        # ADDED HOVER TEMPLATE HERE
-        fig.add_trace(go.Scatter(
-            x=fore_agg['ds'],
-            y=fore_agg['yhat'],
-            mode='lines',
-            name='Forecast',
-            hovertemplate='Predicted Crime Intensity Score: %{y:.2f}<extra></extra>'
-        ))
+        fig.add_trace(
+            go.Scatter(
+                x=hist_agg["Month"],
+                y=hist_agg["Total_CII_Score"],
+                mode="lines",
+                name="Historical baseline",
+                line=dict(width=2.5),
+                hovertemplate="Historical intensity: %{y:,.0f}<extra></extra>"
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=fore_agg["ds"],
+                y=fore_agg["yhat"],
+                mode="lines",
+                name="Forecast",
+                line=dict(width=2.5),
+                hovertemplate="Predicted intensity: %{y:,.0f}<extra></extra>"
+            )
+        )
 
         fig.update_layout(
             template="simple_white",
             hovermode="x unified",
-            margin=dict(l=40, r=20, t=40, b=20),
+            margin=dict(l=55, r=25, t=20, b=40),
             xaxis=dict(rangeslider=dict(visible=False)),
-            yaxis_title="Intensity Score"
+            yaxis_title="Intensity Score",
+            xaxis_title=None,
+            paper_bgcolor="white",
+            plot_bgcolor="white",
+            font=dict(family="Arial", size=12, color="#1f2d3d"),
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=1.02,
+                xanchor="right",
+                x=1
+            )
         )
+
+        fig.update_yaxes(
+            gridcolor="#edf1f7",
+            zerolinecolor="#dfe6ef"
+        )
+
+        fig.update_xaxes(
+            gridcolor="#edf1f7"
+        )
+
         return fig
 
     @app.callback(
@@ -264,6 +451,7 @@ def register_callbacks(app):
         Input("timeseries-graph", "relayoutData")
     )
     def update_time_filter(relayout_data):
-        if relayout_data and 'xaxis.range[0]' in relayout_data:
-            return [relayout_data['xaxis.range[0]'], relayout_data['xaxis.range[1]']]
+        if relayout_data and "xaxis.range[0]" in relayout_data:
+            return [relayout_data["xaxis.range[0]"], relayout_data["xaxis.range[1]"]]
+
         return None

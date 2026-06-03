@@ -112,7 +112,7 @@ def load_and_prepare_data():
         gdf_master = gpd.GeoDataFrame(gdf_master, geometry='geometry')
 
         #print("Simplifying polygons for browser rendering...")
-        gdf_master['geometry'] = gdf_master.geometry.simplify(0.00015, preserve_topology=True)
+        gdf_master['geometry'] = gdf_master.geometry.simplify(0.0008, preserve_topology=True)
 
         minimal_gdf = gdf_master[['LSOA_ID', 'geometry']].reset_index(drop=True)
 

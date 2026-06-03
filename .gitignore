@@ -1,8 +1,13 @@
+# Dashboard generated/data files
+Dashboard/dashboard_data/
+Dashboard/*.parquet
+Dashboard/precompiled_map.json
+Dashboard/assets/lsoas.json
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Virtual environments
 .venv/
-Datasets/
-*.parquet
-pdf_report_maps/
-pdf_report_maps_zscores/
-Prophet Forecasting\Validation March\2026-03
-Prophet Forecasting\Validation March\forecast_map_march_2026.png
-*.json
+venv/
