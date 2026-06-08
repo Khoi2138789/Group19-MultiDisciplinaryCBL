@@ -1,4 +1,5 @@
 import os
+import json
 import plotly.io as pio
 from dash import dcc, html, dash_table
 
@@ -61,6 +62,10 @@ def section_title(text):
             "fontWeight": "750"
         }
     )
+
+
+with open(os.path.join(BASE_DIR, 'lsoa_by_pfa.json')) as f:
+    PFA_DATA = json.load(f)
 
 
 def make_layout():
@@ -380,6 +385,52 @@ def make_layout():
                                 ]
                             )
                         ]
+                    ),
+
+                    html.Div(
+
+                        style={"backgroundColor": "white", "padding": "15px", "borderRadius": "8px",
+                               "boxShadow": "0 1px 3px rgba(0,0,0,0.05)", "flexShrink": 0},
+                        children=[
+                            # UPDATED TITLE
+                            html.H4("Patrol Planner",
+                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
+                            html.H2("Select Police Force",
+                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
+                            dcc.Dropdown(
+                                id="pfa-dropdown",
+                                options=[
+                                    {"label": pfa, "value": pfa}
+                                    for pfa in sorted(PFA_DATA.keys())
+                                ],
+                                value=list(PFA_DATA.keys())[0],  # default selection
+                                clearable=False
+                            ),
+                            html.H2("Select start LSOA of patrol",
+                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
+                            dcc.Dropdown(
+                                id="start-lsoa-dropdown",
+                                placeholder="Select starting LSOA"
+                            ),
+                            html.H2("LSOA visits of patrol",
+                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
+                            dcc.Input(
+                                id="patrol-length",
+                                type="number",
+                                min=1,
+                                value=10,
+                                placeholder="Number of stops"
+                            ),
+
+                            html.Button(
+                                "Generate Patrol",
+                                id="generate-button",
+                                n_clicks=0
+                            ),
+                            html.Div(id="pfa-info"),
+                            html.Div(id="patrol-output")
+                        ]
+
                     )
                 ]
             )

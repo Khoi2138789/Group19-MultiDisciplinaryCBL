@@ -4,7 +4,14 @@ import plotly.graph_objects as go
 import numpy as np
 
 from data import GDF_MASTER, DF_FORECAST, DF_HISTORICAL, CRIME_AXES, MOMENTUM_AXES
+from layout import PFA_DATA
 
+from Patrol.graph import Graph, Node
+from Patrol.path import Path
+from Patrol.walker import Walker
+
+import json
+from dash import html
 
 def register_callbacks(app):
 
@@ -455,3 +462,100 @@ def register_callbacks(app):
             return [relayout_data["xaxis.range[0]"], relayout_data["xaxis.range[1]"]]
 
         return None
+        if relayout_data and 'xaxis.range[0]' in relayout_data:
+            return [relayout_data['xaxis.range[0]'], relayout_data['xaxis.range[1]']]
+        return None
+    
+    @app.callback(
+        Output("start-lsoa-dropdown", "options"),
+        Output("start-lsoa-dropdown", "value"),
+        Input("pfa-dropdown", "value")
+    )
+    def update_lsoa_dropdown(selected_pfa):
+
+        lsoas = PFA_DATA[selected_pfa]
+
+        options = [
+            {
+                "label": f"{lsoa['lsoa_name']} ({lsoa['lsoa_code']})",
+                "value": lsoa["lsoa_code"]
+            }
+            for lsoa in lsoas
+        ]
+
+        default_value = options[0]["value"] if options else None
+
+        return options, default_value
+    
+    @app.callback(
+        Output("patrol-output", "children"),
+        Input("generate-button", "n_clicks"),
+        State("pfa-dropdown", "value"),
+        State("start-lsoa-dropdown", "value"),
+        State("patrol-length", "value"),
+        prevent_initial_call=True
+    )
+    def generate_patrol(
+        n_clicks,
+        selected_pfa,
+        start_lsoa,
+        patrol_length
+    ):
+
+        print("generating patrol")
+        graph = Graph()
+
+        nodes_by_id = {}
+
+        lsoas = PFA_DATA[selected_pfa]
+
+        # create nodes
+        for item in lsoas:
+
+            node = Node(
+                _id=item["lsoa_code"],
+                value=1 / (1 + np.exp(-item["z_score"])),
+                lat=item["lat"],
+                lon=item["long"]
+            )
+
+            graph.add_node(node)
+            nodes_by_id[node.id] = node
+
+        pfa_lsoas = set(item["lsoa_code"] for item in lsoas)
+
+        # connect nodes
+        for item in lsoas:
+            source = nodes_by_id[item["lsoa_code"]]
+
+            for nid in item["neighbours"]:
+                if nid not in pfa_lsoas:
+                    continue
+                target = nodes_by_id[nid]
+                graph.add_edge(source, target)
+        
+        path = Path(memory=patrol_length)
+
+        walker = Walker(graph, path)
+        start = nodes_by_id[start_lsoa]
+        walker.set_start(start)
+
+        walked_path = []
+        walked_path.append({
+                "lsoa": start.id,
+                "lat": start.lat,
+                "lon": start.lon
+            })
+
+        for i in range(patrol_length):
+            next = walker.step_random()
+            walked_path.append({
+                "lsoa": next.id,
+                "lat": next.lat,
+                "lon": next.lon
+            })
+
+
+        return html.Pre(
+            json.dumps(walked_path, indent=2)
+        )
