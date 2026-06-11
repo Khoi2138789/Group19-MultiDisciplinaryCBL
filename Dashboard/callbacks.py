@@ -467,6 +467,54 @@ def register_callbacks(app):
         return None
     
     @app.callback(
+    Output("cctv-priority-table", "data"),
+    Output("cctv-priority-table", "columns"),
+    Input("selected-lsoas", "data")
+    )
+    
+    def update_cctv_priority_table(selected_lsoas):
+        if selected_lsoas:
+            filtered_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)].copy()
+        else:
+            filtered_df = GDF_MASTER.copy()
+
+        display_cols = [
+            "LSOA_NAME",
+            "LSOA_ID",
+            "unsolved_non_severe",
+            "total_non_severe",
+            "priority_level",
+            "cctv_score",
+            "cctv_rank"
+        ]
+
+        filtered_df = filtered_df[display_cols].copy()
+        filtered_df = filtered_df[filtered_df["cctv_score"] > 0]
+
+        filtered_df = filtered_df.sort_values(
+            by=["cctv_rank", "cctv_score"],
+            ascending=[True, False]
+        )
+
+        if not selected_lsoas:
+            filtered_df = filtered_df.head(100)
+
+        filtered_df = filtered_df.rename(columns={
+            "LSOA_NAME": "LSOA name",
+            "LSOA_ID": "LSOA code",
+            "unsolved_non_severe": "Unsolved non-severe crimes",
+            "total_non_severe": "Total non-severe crimes",
+            "priority_level": "Priority level",
+            "cctv_score": "CCTV score",
+            "cctv_rank": "Priority installation rank"
+        })
+
+        return (
+            filtered_df.round(2).to_dict("records"),
+            [{"name": col, "id": col} for col in filtered_df.columns]
+        )
+    
+    @app.callback(
         Output("start-lsoa-dropdown", "options"),
         Output("start-lsoa-dropdown", "value"),
         Input("pfa-dropdown", "value")

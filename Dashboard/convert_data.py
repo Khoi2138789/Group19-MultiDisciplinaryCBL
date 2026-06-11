@@ -45,6 +45,11 @@ def bake_to_parquet():
     pd.read_csv(types_path).to_parquet("pcp_crime_types.parquet")
     print("Crime Types converted.")
 
+    types_path = os.path.join(data_folder, "cctv_priority.csv")
+    pd.read_csv(types_path).to_parquet("cctv_priority.parquet")
+    print("Crime Types converted.")
+
+
     print("All files successfully converted to Parquet!")
 
 

@@ -9,6 +9,7 @@ SHAPEFILE_PATH = os.path.join(BASE_DIR, "lsoas_boundaries.parquet")
 FORECAST_PATH = os.path.join(BASE_DIR, "summer_2026_forecast.parquet")
 HISTORICAL_TIME_SERIES_PATH = os.path.join(BASE_DIR, "prophet_input.parquet")
 HISTORICAL_CRIME_TYPES_PATH = os.path.join(BASE_DIR, "pcp_crime_types.parquet")
+CCTV_PRIORITY_PATH = os.path.join(BASE_DIR, "cctv_priority.parquet")
 
 # Tell the dashboard which Z-score months to look for
 Z_SCORE_MONTHS = ['04', '05', '06', '07', '08']
@@ -67,6 +68,50 @@ def load_and_prepare_data():
     print("Merging Spatial Master Dataset...")
     gdf_master = gdf_map.merge(df_pcp_types, on='LSOA_ID', how='left')
     gdf_master = gdf_master.merge(df_pcp_momentum, on='LSOA_ID', how='left')
+    
+     # CCTV
+    print ("Loading CCTV Priority Rankings...")
+    
+    if  os.path.exists(CCTV_PRIORITY_PATH):
+        df_cctv = pd.read_parquet(CCTV_PRIORITY_PATH)
+
+        df_cctv["LSOA_ID"] = df_cctv["LSOA_ID"].astype(str)
+
+        cctv_cols = [
+            "LSOA_ID",
+            "unsolved_non_severe",  
+            "total_non_severe",
+            "priority_level",
+            "cctv_score",
+            "cctv_rank"
+        ]
+
+        gdf_master = gdf_master.merge(
+            df_cctv[cctv_cols],
+            on="LSOA_ID",
+            how="left"
+        )
+
+        for col in [
+            "unsolved_non_severe",
+            "total_non_severe",
+            "priority_level",
+            "cctv_score",
+            "cctv_rank"
+        ]:
+            gdf_master[col] = gdf_master[col].fillna(0)
+
+        print("  -> CCTV priority data loaded.")
+
+    else:
+        print("  -> Warning: cctv_priority.parquet not found.")
+
+        gdf_master["unsolved_non_severe"] = 0
+        gdf_master["total_non_severe"] = 0
+        gdf_master["priority_level"] = 0
+        gdf_master["cctv_score"] = 0
+        gdf_master["cctv_rank"] = 0
+
 
     forecast_agg = df_forecast.groupby('LSOA_ID')[['yhat', 'yhat_lower', 'yhat_upper']].mean().reset_index()
 

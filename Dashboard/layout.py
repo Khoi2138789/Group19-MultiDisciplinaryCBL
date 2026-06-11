@@ -430,9 +430,51 @@ def make_layout():
                             html.Div(id="pfa-info"),
                             html.Div(id="patrol-output")
                         ]
+                    ), 
 
-                    )
-                ]
-            )
-        ]
-    )
+                    html.Div(
+                        style=card_style(),
+                        children=[
+                        section_title("Selected LSOAs Ranked by CCTV Priority"),
+                        dash_table.DataTable(
+                            id="cctv-priority-table",
+                            page_size=10,
+                            sort_action="native",
+                            filter_action="native",
+                            sort_mode="multi",
+                            style_table={
+                                "overflowX": "auto",
+                                "borderRadius": "12px",
+                                "overflow": "hidden"
+                            },
+                            style_header={
+                                "backgroundColor": "#eef4fb",
+                                "fontWeight": "bold",
+                                "border": "1px solid #dbe3ef",
+                                "color": "#172033",
+                                "fontSize": "14px"
+                            },
+                            style_cell={
+                                "textAlign": "left",
+                                "padding": "11px",
+                                "fontFamily": "Arial, sans-serif",
+                                "fontSize": "13px",
+                                "border": "1px solid #edf1f7",
+                                "color": "#263244",
+                                "minWidth": "120px",
+                                "maxWidth": "360px",
+                                "whiteSpace": "normal"
+                            },
+                            style_data_conditional=[
+                                {
+                                    "if": {"row_index": "odd"},
+                                    "backgroundColor": "#fafcff"
+                                }
+                            ]
+                        )
+                    ]
+                )
+            ]
+        ) 
+    ]
+)
