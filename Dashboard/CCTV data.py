@@ -1,12 +1,11 @@
 import pandas as pd
 from pathlib import Path
+import config
 
-
-folder = Path(__file__).resolve().parent
-
-data_folder = folder / "Crime data"
+print("Loading raw crime data from the central config path...")
+# Point directly to the long hash folder defined in your config
+data_folder = Path(config.POLICE_CRIME_DATA)
 files = list(data_folder.rglob("*-street.csv"))
-
 
 df_list = []
 
@@ -54,14 +53,15 @@ def assign_priority(row, non_suspect, non_severe_crime):
     frequency = row["total_non_severe"]
 
     if unsolved >= non_suspect:
-        return 1 
+        return 1
 
     elif unsolved > 0 and frequency >= non_severe_crime:
         return 2
 
     else:
-        return 3 
-    
+        return 3
+
+
 def priority_score(row):
     priority = row["priority_level"]
     unsolved_norm = row["unsolved_norm"]
@@ -75,15 +75,17 @@ def priority_score(row):
         priority_num = 0.0
 
     score = (
-        priority_num + 0.6 * unsolved_norm + 0.4 * frequency_norm
-    )   
+            priority_num + 0.6 * unsolved_norm + 0.4 * frequency_norm
+    )
 
     return score
+
 
 def norm(column):
     if column.max() == column.min():
         return column * 0
     return (column - column.min()) / (column.max() - column.min())
+
 
 ave_non_suspect = df["unsolved_non_severe"].mean()
 ave_non_severe_crime = df["total_non_severe"].mean()
@@ -107,7 +109,7 @@ df = df.sort_values(by="cctv_score", ascending=False)
 
 df["cctv_rank"] = range(1, len(df) + 1)
 
-print(df)
-df.to_parquet("cctv_priority.parquet", index=False)
-df.to_csv("cctv_priority.csv", index=False)
-print("finsihed!")
+print(df.head())
+# Dynamically route the files to your Dashboard and DuckDB folders
+df.to_parquet(config.CCTV_PRIORITY_PARQUET, index=False)
+df.to_csv(config.CCTV_PRIORITY_CSV, index=False)
