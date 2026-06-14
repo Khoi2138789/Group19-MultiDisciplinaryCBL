@@ -2,7 +2,7 @@ import duckdb
 import pandas as pd
 
 con = duckdb.connect('monthly_crime_scores.db')
-path = r"C:\Users\20241114\PycharmProjects\PythonProject\Data\c5e365714b6c98084c564fd69b91ccde80ae9133\**\*-street.csv"
+path = r"C:\Users\20241114\PycharmProjects\PythonProject\Datasets\c5e365714b6c98084c564fd69b91ccde80ae9133\**\*-street.csv".replace('\\', '/')
 
 query = f"""
     SELECT 
@@ -22,7 +22,7 @@ query = f"""
     WHERE 
         "LSOA code" IS NOT NULL 
         AND "LSOA code" LIKE 'E%'
-        AND Month BETWEEN '2023-03' AND '2026-03'
+        AND Month BETWEEN '2023-01' AND '2026-03'
         AND TRIM("Crime type") IN (
             'Violence and sexual offences', 
             'Burglary', 
@@ -63,7 +63,7 @@ query_pcp = f"""
     WHERE 
         "LSOA code" IS NOT NULL 
         AND "LSOA code" LIKE 'E%'
-        AND Month BETWEEN '2023-03' AND '2026-03'
+        AND Month BETWEEN '2023-01' AND '2026-03'
         AND TRIM("Crime type") IN (
             'Violence and sexual offences', 
             'Burglary', 
