@@ -2,6 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import os
+import config
 
 # --- 1. Force Academic Typesetting ---
 # This ensures the Matplotlib output matches LaTeX document fonts
@@ -16,8 +17,9 @@ plt.rcParams.update({
 })
 
 # --- 2. Load historical and forecasted data ---
-df_historical = pd.read_csv('Training Data/prophet_input.csv')
-df_forecast = pd.read_csv('Forecasting Results/summer_2026_forecast.csv')
+# Using config dynamically instead of hardcoded relative paths
+df_historical = pd.read_csv(config.PROPHET_INPUT_CSV)
+df_forecast = pd.read_csv(config.SUMMER_FORECAST_CSV)
 
 # --- 3. Define exact column names ---
 lsoa_col = 'LSOA_ID'
@@ -81,7 +83,8 @@ ax.yaxis.set_major_formatter(ticker.StrMethodFormatter('{x:,.0f}'))
 # --- 8. Save at high resolution ---
 plt.tight_layout()
 
-save_dir = 'Prophet Forecasting/Report/pdf_report_chart'
+# Anchoring the save directory to the project root so it never gets lost
+save_dir = os.path.join(config.PROJECT_ROOT, 'Prophet Forecasting', 'Report', 'pdf_report_chart')
 file_name = 'forecast_temporal_highest_lsoa.png'
 
 # Ensure the directory exists safely
@@ -91,3 +94,4 @@ full_path = os.path.join(save_dir, file_name)
 # facecolor='white' prevents transparent/dark background artifacts
 plt.savefig(full_path, dpi=600, bbox_inches='tight', facecolor='white')
 print(f"The dynamically selected LSOA is: {target_lsoa}")
+print(f"Chart successfully saved to: {full_path}")

@@ -2,10 +2,11 @@ import os
 import json
 import plotly.io as pio
 from dash import dcc, html, dash_table
+import config
 
 # Locate and load the pre-compiled map instantly when the server starts
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MAP_FILE = os.path.join(BASE_DIR, "precompiled_map.json")
+# Using config dynamically routes straight to the Dashboard folder
+MAP_FILE = os.path.join(config.DASHBOARD_DIR, "precompiled_map.json")
 
 print("Loading pre-compiled map into layout...")
 INITIAL_MAP = pio.read_json(MAP_FILE)

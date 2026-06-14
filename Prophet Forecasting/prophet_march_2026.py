@@ -4,6 +4,7 @@ import concurrent.futures
 import os
 import warnings
 import logging
+import config
 
 #Not allowing prophet to send warning messages in the terminal.
 warnings.filterwarnings('ignore')
@@ -51,7 +52,7 @@ def forecast_single_lsoa(lsoa_id, historical_data):
 if __name__ == '__main__':
 
     #Reading the created csv containing the Crime Intensity Scores for each LSOA for each month.
-    prophet_training_data = pd.read_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Training Data\prophet_input.csv")
+    prophet_training_data = pd.read_csv(config.PROPHET_INPUT_CSV)
     #Ensuring that the date column does not contain any formatting errors.
     prophet_training_data['Month'] = pd.to_datetime(prophet_training_data['Month'])
 
@@ -73,7 +74,7 @@ if __name__ == '__main__':
 
     all_predictions = []
     first_batch = True
-    output_path = r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Validation March\march_2026_forecast.csv"
+    output_path = config.VALIDATION_FORECAST_MARCH_CSV
 
     # Allowing for multiple workers at the same time.
     with concurrent.futures.ProcessPoolExecutor(max_workers=safe_cores) as executor:

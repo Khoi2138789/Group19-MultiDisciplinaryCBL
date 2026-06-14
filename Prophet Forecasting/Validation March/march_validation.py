@@ -2,11 +2,14 @@ import duckdb
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
 
+import config
+import config
+import os
+
 con = duckdb.connect(':memory:')
 
 #Storing real crime data of March 2026 into the variable real_data_path.
-real_data_path = r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Validation March\**\*-street.csv".replace('\\', '/')
-
+real_data_path = os.path.join(config.VALIDATION_DIR_MARCH, "**", "*-street.csv").replace('\\', '/')
 query_real_data = f"""
     SELECT 
         "LSOA code" AS LSOA_ID,
@@ -31,7 +34,7 @@ query_real_data = f"""
 df_march = con.execute(query_real_data).df()
 
 #Reading the predictions of March 2026.
-df_forecast = pd.read_csv('march_2026_forecast.csv')
+df_forecast = pd.read_csv(config.VALIDATION_FORECAST_MARCH_CSV)
 
 #Merging the predictions with the real crime intensity scores.
 validation_df = df_forecast.merge(df_march, on='LSOA_ID', how='left')

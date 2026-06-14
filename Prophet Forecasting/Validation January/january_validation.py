@@ -1,11 +1,12 @@
 import duckdb
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
-
+import config
+import os
 con = duckdb.connect(':memory:')
 
 # Storing real crime data of January 2026 into the variable real_data_path.
-real_data_path = r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Validation January\**\*-street.csv".replace('\\', '/')
+real_data_path = os.path.join(config.VALIDATION_DIR_JANUARY, "**", "*-street.csv").replace('\\', '/')
 
 query_real_data = f"""
     SELECT 
@@ -31,7 +32,7 @@ query_real_data = f"""
 df_january = con.execute(query_real_data).df()
 
 # Reading the predictions of January 2026.
-df_forecast = pd.read_csv('january_2026_forecast.csv')
+df_forecast = pd.read_csv(config.VALIDATION_FORECAST_JANUARY_CSV)
 
 # Merging the predictions with the real crime intensity scores.
 validation_df = df_forecast.merge(df_january, on='LSOA_ID', how='left')

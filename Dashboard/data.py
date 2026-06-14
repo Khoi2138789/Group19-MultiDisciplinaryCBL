@@ -2,14 +2,15 @@ import pandas as pd
 import geopandas as gpd
 import os
 import json
+import config
 
 # --- 1. CONFIGURATION & FILE PATHS (UPDATED FOR PARQUET) ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SHAPEFILE_PATH = os.path.join(BASE_DIR, "lsoas_boundaries.parquet")
-FORECAST_PATH = os.path.join(BASE_DIR, "summer_2026_forecast.parquet")
-HISTORICAL_TIME_SERIES_PATH = os.path.join(BASE_DIR, "prophet_input.parquet")
-HISTORICAL_CRIME_TYPES_PATH = os.path.join(BASE_DIR, "pcp_crime_types.parquet")
-CCTV_PRIORITY_PATH = os.path.join(BASE_DIR, "cctv_priority.parquet")
+# We now rely entirely on config.py for dynamic pathing
+SHAPEFILE_PATH = config.LSOA_BOUNDARIES_PARQUET
+FORECAST_PATH = config.SUMMER_FORECAST_PARQUET
+HISTORICAL_TIME_SERIES_PATH = config.PROPHET_INPUT_PARQUET
+HISTORICAL_CRIME_TYPES_PATH = config.CRIME_TYPES_PARQUET
+CCTV_PRIORITY_PATH = config.CCTV_PRIORITY_PARQUET
 
 # Tell the dashboard which Z-score months to look for
 Z_SCORE_MONTHS = ['04', '05', '06', '07', '08']
@@ -18,7 +19,8 @@ Z_SCORE_MONTHS = ['04', '05', '06', '07', '08']
 def load_and_prepare_data():
     print("Initializing Dashboard Data Engine...")
 
-    assets_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'assets')
+    # Using the config asset directory
+    assets_dir = config.DASHBOARD_ASSETS_DIR
     os.makedirs(assets_dir, exist_ok=True)
     geojson_path = os.path.join(assets_dir, 'lsoas.json')
     needs_recalc = not os.path.exists(geojson_path)
@@ -68,18 +70,18 @@ def load_and_prepare_data():
     print("Merging Spatial Master Dataset...")
     gdf_master = gdf_map.merge(df_pcp_types, on='LSOA_ID', how='left')
     gdf_master = gdf_master.merge(df_pcp_momentum, on='LSOA_ID', how='left')
-    
-     # CCTV
-    print ("Loading CCTV Priority Rankings...")
-    
-    if  os.path.exists(CCTV_PRIORITY_PATH):
+
+    # CCTV
+    print("Loading CCTV Priority Rankings...")
+
+    if os.path.exists(CCTV_PRIORITY_PATH):
         df_cctv = pd.read_parquet(CCTV_PRIORITY_PATH)
 
         df_cctv["LSOA_ID"] = df_cctv["LSOA_ID"].astype(str)
 
         cctv_cols = [
             "LSOA_ID",
-            "unsolved_non_severe",  
+            "unsolved_non_severe",
             "total_non_severe",
             "priority_level",
             "cctv_score",
@@ -112,7 +114,6 @@ def load_and_prepare_data():
         gdf_master["cctv_score"] = 0
         gdf_master["cctv_rank"] = 0
 
-
     forecast_agg = df_forecast.groupby('LSOA_ID')[['yhat', 'yhat_lower', 'yhat_upper']].mean().reset_index()
 
     # CONSTRAINT: Clip to 0 (Physically impossible for crime to be negative)
@@ -134,10 +135,11 @@ def load_and_prepare_data():
     # --- 6.5 LOAD ALL SPATIAL HOTSPOT Z-SCORES ---
     print("Loading all monthly Z-Scores...")
     for month in Z_SCORE_MONTHS:
-        z_path = os.path.join(BASE_DIR, f"z_scores_2026_{month}.parquet")
+        # Looking in the FORECAST folder and reading the CSV instead of parquet
+        z_path = os.path.join(config.DASHBOARD_DIR, f"z_scores_2026_{month}.parquet")
 
         if os.path.exists(z_path):
-            df_z = pd.read_parquet(z_path)
+            df_z = pd.read_csv(z_path)
 
             # Rename 'z_score' to 'z_score_04', 'z_score_05', etc., to avoid overlapping columns
             df_z = df_z.rename(columns={'z_score': f'z_score_{month}'})
@@ -156,7 +158,7 @@ def load_and_prepare_data():
         print("Baking highly accurate boundaries to GeoJSON (Fast Method)...")
         gdf_master = gpd.GeoDataFrame(gdf_master, geometry='geometry')
 
-        #print("Simplifying polygons for browser rendering...")
+        # print("Simplifying polygons for browser rendering...")
         gdf_master['geometry'] = gdf_master.geometry.simplify(0.0008, preserve_topology=True)
 
         minimal_gdf = gdf_master[['LSOA_ID', 'geometry']].reset_index(drop=True)

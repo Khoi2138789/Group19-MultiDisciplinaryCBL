@@ -1,8 +1,10 @@
 import duckdb
 import pandas as pd
+import os
+import config
 
-con = duckdb.connect('monthly_crime_scores.db')
-path = r"C:\Users\20241114\PycharmProjects\PythonProject\Datasets\c5e365714b6c98084c564fd69b91ccde80ae9133\**\*-street.csv".replace('\\', '/')
+con = duckdb.connect(config.DUCKDB_DATABASE)
+path = os.path.join(config.DATA_DIR, "**", "*-street.csv").replace('\\', '/')
 
 query = f"""
     SELECT 
@@ -43,7 +45,7 @@ prophet_training_data = con.execute(query).df()
 print(prophet_training_data.head())
 print(prophet_training_data.tail())
 
-prophet_training_data.to_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Training Data\prophet_input.csv", index=False)
+prophet_training_data.to_csv(config.PROPHET_INPUT_CSV, index=False)
 
 query_pcp = f"""
     SELECT 
@@ -79,6 +81,6 @@ query_pcp = f"""
 pcp_data = con.execute(query_pcp).df()
 print(pcp_data.head())
 
-pcp_data.to_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\DuckDB\pcp_crime_types.csv", index=False)
+pcp_data.to_csv(config.CRIME_TYPES_CSV, index=False)
 
 con.close()

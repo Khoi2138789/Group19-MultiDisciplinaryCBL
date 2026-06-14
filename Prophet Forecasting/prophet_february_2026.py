@@ -4,8 +4,9 @@ import concurrent.futures
 import os
 import warnings
 import logging
+import config
 
-#Not allowing prophet to send warning messages in the terminal.
+# Not allowing prophet to send warning messages in the terminal.
 warnings.filterwarnings('ignore')
 logging.getLogger('cmdstanpy').setLevel(logging.WARNING)
 
@@ -15,44 +16,46 @@ def forecast_single_lsoa(lsoa_id, historical_data):
     This function takes one LSOA and predicts its future.
     """
     try:
-        #Making sure that the prediction will be 0 when there are less than 2 months containing crime data.
+        # Making sure that the prediction will be 0 when there are less than 2 months containing crime data.
         if len(historical_data) < 2:
             return pd.DataFrame({
-                'ds': [pd.to_datetime('2026-02-01')], # Updated to February 2026
+                'ds': [pd.to_datetime('2026-02-01')],  # Updated to February 2026
                 'yhat': [0],
                 'yhat_lower': [0],
                 'yhat_upper': [0],
                 'LSOA_ID': [lsoa_id]
             })
-        #Making sure Prophet uses the Month column as the time stamps and the Total CII score as the data to train for.
+        # Making sure Prophet uses the Month column as the time stamps and the Total CII score as the data to train for.
         df = historical_data.rename(columns={'Month': 'ds', 'Total_CII_Score': 'y'})
 
         local_max = df['y'].quantile(0.95)
         df['y'] = df['y'].clip(upper=local_max)
-        #Initializing the model and making sure that the model only accounts for yearly seasonality.
+        # Initializing the model and making sure that the model only accounts for yearly seasonality.
         m = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
         m.fit(df)
 
-        #Predicting only for the next month.
+        # Predicting only for the next month.
         future = m.make_future_dataframe(periods=1, freq='MS')
         forecast = m.predict(future)
 
-        #Extracting the prediction and attaching the LSOA name to it.
+        # Extracting the prediction and attaching the LSOA name to it.
         prediction_row = forecast.tail(1)[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].copy()
         prediction_row['LSOA_ID'] = lsoa_id
 
         return prediction_row
 
     except Exception as e:
-        #Making sure the algorithm does not crash if the next month for a specific LSOA cannot be predicted.
+        # Making sure the algorithm does not crash if the next month for a specific LSOA cannot be predicted.
         print(f'A prediction cannot be made for {lsoa_id}: {e}')
         return None
 
+
 if __name__ == '__main__':
 
-    #Reading the created csv containing the Crime Intensity Scores for each LSOA for each month.
-    prophet_training_data = pd.read_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Training Data\prophet_input.csv")
-    #Ensuring that the date column does not contain any formatting errors.
+    # Reading the created csv containing the Crime Intensity Scores using the config path
+    prophet_training_data = pd.read_csv(config.PROPHET_INPUT_CSV)
+
+    # Ensuring that the date column does not contain any formatting errors.
     prophet_training_data['Month'] = pd.to_datetime(prophet_training_data['Month'])
 
     # Updated rolling window: February 2023 to January 2026
@@ -64,9 +67,9 @@ if __name__ == '__main__':
         (prophet_training_data['Month'] <= end_date_val)
         ]
 
-    #Extracting all the LSOAs.
+    # Extracting all the LSOAs.
     all_lsoas = prophet_training_data['LSOA_ID'].unique()
-    #Allowing for only a maximum of n-1 workers for the process.
+    # Allowing for only a maximum of n-1 workers for the process.
     total_cores = os.cpu_count()
     safe_cores = 12
 
@@ -74,7 +77,9 @@ if __name__ == '__main__':
 
     all_predictions = []
     first_batch = True
-    output_path = r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Validation February\february_2026_forecast.csv"
+
+    # Directing the output dynamically to the February validation folder
+    output_path = config.VALIDATION_FORECAST_FEBRUARY_CSV
 
     # Allowing for multiple workers at the same time.
     with concurrent.futures.ProcessPoolExecutor(max_workers=safe_cores) as executor:

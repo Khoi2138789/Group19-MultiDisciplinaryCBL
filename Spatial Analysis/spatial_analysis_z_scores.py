@@ -5,14 +5,17 @@ import matplotlib.pyplot as plt
 import libpysal
 from esda.getisord import G_Local
 import warnings
+import config
 
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
-    output_folder = "pdf_report_maps_zscores"
+    # Dynamically place output folder in project root
+    output_folder = os.path.join(config.SPATIAL_DIR, "pdf_report_maps_zscores")
     os.makedirs(output_folder, exist_ok=True)
 
-    map_path = r"C:\Users\20241114\PycharmProjects\PythonProject\Datasets\Lower_layer_Super_Output_Areas_December_2021_Boundaries_EW_BFC_V10_-7599572456947714539\LSOA_2021_EW_BFC_V10.shp"
+    # Use config for the shapefile
+    map_path = config.LSOA_SHAPEFILE
     gdf_map = gpd.read_file(map_path)
     gdf_map = gdf_map.rename(columns={'LSOA21CD': 'LSOA_ID'})
 
@@ -23,7 +26,8 @@ if __name__ == '__main__':
     w = libpysal.weights.Queen.from_dataframe(gdf_map)
     w.transform = 'R'
 
-    df_predictions = pd.read_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Forecasting Results\summer_2026_forecast.csv")
+    # Use config for the Prophet forecast results
+    df_predictions = pd.read_csv(config.SUMMER_FORECAST_CSV)
     df_predictions['ds'] = pd.to_datetime(df_predictions['ds'])
 
     months_to_plot = ['2026-04-01', '2026-05-01', '2026-06-01', '2026-07-01', '2026-08-01']
@@ -49,7 +53,9 @@ if __name__ == '__main__':
         monthly_map_data['p_value'] = gi_star.p_sim
 
         csv_filename = f"z_scores_{month_str}.csv"
-        monthly_map_data[['LSOA_ID', 'z_score']].to_csv(fr'C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Forecasting Results\{csv_filename}', index=False)
+        # Dynamically route the CSV export to the forecasting results folder
+        csv_output_path = os.path.join(config.FORECAST_RESULTS_DIR, csv_filename)
+        monthly_map_data[['LSOA_ID', 'z_score']].to_csv(csv_output_path, index=False)
 
         fig, ax = plt.subplots(1, 1, figsize=(10, 10))
         monthly_map_data.plot(
