@@ -4,6 +4,7 @@ import concurrent.futures
 import os
 import warnings
 import logging
+import config
 
 #Not allowing prophet to send warning messages in the terminal.
 warnings.filterwarnings('ignore')
@@ -51,7 +52,7 @@ def forecast_single_lsoa(lsoa_id, historical_data):
 if __name__ == '__main__':
 
     #Reading the created csv containing the Crime Intensity Scores for each LSOA for each month.
-    prophet_training_data = pd.read_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Training Data\prophet_input.csv")
+    prophet_training_data = pd.read_csv(config.PROPHET_INPUT_CSV)
     #Ensuring that the date column does not contain any formatting errors.
     prophet_training_data['Month'] = pd.to_datetime(prophet_training_data['Month'])
 
@@ -72,33 +73,60 @@ if __name__ == '__main__':
     print(f'Detected {total_cores} CPU cores. Performing the Prophet algorithm with {safe_cores} workers.')
 
     all_predictions = []
+    first_batch = True
+    output_path = config.VALIDATION_FORECAST_MARCH_CSV
 
-    #Allowing for multiple workers at the same time.
+    # Allowing for multiple workers at the same time.
     with concurrent.futures.ProcessPoolExecutor(max_workers=safe_cores) as executor:
 
         futures = []
         for lsoa in all_lsoas:
-            #Assigning for every worker only data of one LSOA at a time.
+            # Assigning for every worker only data of one LSOA at a time.
             lsoa_data = prophet_training_data[prophet_training_data['LSOA_ID'] == lsoa].copy()
             futures.append(executor.submit(forecast_single_lsoa, lsoa, lsoa_data))
 
-        #Storing the forecasting results for each LSOA for the next month.
+        # Storing the forecasting results for each LSOA
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             result = future.result()
 
             if result is not None:
                 all_predictions.append(result)
 
+            # --- BATCH PROCESSING LOGIC ---
+            # Every 1,000 LSOAs, process the batch, clip negatives, append to CSV, and clear RAM
             if (i + 1) % 1000 == 0:
-                print(f'Completed the process for {i + 1} / {len(all_lsoas)} LSOAs.')
+                df_batch = pd.concat(all_predictions, ignore_index=True)
 
-    #Creating a dataframe containing all the separate LSOA predictions for the next month.
-    df_predictions = pd.concat(all_predictions, ignore_index=True)
+                # Clip impossible negative forecasts to 0
+                df_batch['yhat'] = df_batch['yhat'].clip(lower=0)
+                df_batch['yhat_lower'] = df_batch['yhat_lower'].clip(lower=0)
+                df_batch['yhat_upper'] = df_batch['yhat_upper'].clip(lower=0)
 
-    df_predictions['yhat'] = df_predictions['yhat'].clip(lower=0)
-    df_predictions['yhat_lower'] = df_predictions['yhat_lower'].clip(lower=0)
-    df_predictions['yhat_upper'] = df_predictions['yhat_upper'].clip(lower=0)
+                if first_batch:
+                    # First batch creates the file and writes the header
+                    df_batch.to_csv(output_path, index=False, mode='w')
+                    first_batch = False
+                else:
+                    # Subsequent batches append to the file without writing the header again
+                    df_batch.to_csv(output_path, index=False, mode='a', header=False)
 
-    df_predictions.to_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Validation March\march_2026_forecast.csv", index=False)
+                print(f'Appended batch to disk: {i + 1} / {len(all_lsoas)} LSOAs. RAM refreshed.')
 
-    print(df_predictions.head())
+                # Clear the list to free up system memory
+                all_predictions = []
+
+    # --- FINAL BATCH PROCESSING ---
+    # Catch any remaining LSOAs that didn't perfectly fit into a 1,000-item batch at the end
+    if all_predictions:
+        df_final_batch = pd.concat(all_predictions, ignore_index=True)
+
+        df_final_batch['yhat'] = df_final_batch['yhat'].clip(lower=0)
+        df_final_batch['yhat_lower'] = df_final_batch['yhat_lower'].clip(lower=0)
+        df_final_batch['yhat_upper'] = df_final_batch['yhat_upper'].clip(lower=0)
+
+        if first_batch:
+            df_final_batch.to_csv(output_path, index=False, mode='w')
+        else:
+            df_final_batch.to_csv(output_path, index=False, mode='a', header=False)
+
+        print(f'Final batch appended. Total LSOAs processed: {len(all_lsoas)}.')

@@ -2,19 +2,22 @@ import os
 import json
 import plotly.io as pio
 from dash import dcc, html, dash_table
+import config
 
-# Locate and load the pre-compiled map instantly when the server starts
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MAP_FILE = os.path.join(BASE_DIR, "precompiled_map.json")
+MAP_FILE = os.path.join(config.DASHBOARD_DIR, "precompiled_map.json")
 
 print("Loading pre-compiled map into layout...")
 INITIAL_MAP = pio.read_json(MAP_FILE)
-
-# 1. Remove hover tooltips on the map so they do not block the colors
 INITIAL_MAP.update_traces(hoverinfo="none", hovertemplate=None)
-
-# 2. Set default map interaction to lasso selection
 INITIAL_MAP.update_layout(dragmode="lasso")
+
+# Dynamic config-driven pathing for network structures
+# New code looking directly in the Dashboard folder
+PATROL_NETWORK_PATH = os.path.join(config.DASHBOARD_DIR, "lsoa_by_pfa.json")
+
+print("Loading patrol network mapping layer...")
+with open(PATROL_NETWORK_PATH) as f:
+    PFA_DATA = json.load(f)
 
 
 def card_style(extra=None):
@@ -27,10 +30,8 @@ def card_style(extra=None):
         "width": "100%",
         "boxSizing": "border-box"
     }
-
     if extra:
         base.update(extra)
-
     return base
 
 
@@ -62,10 +63,6 @@ def section_title(text):
             "fontWeight": "750"
         }
     )
-
-
-with open(os.path.join(BASE_DIR, 'lsoa_by_pfa.json')) as f:
-    PFA_DATA = json.load(f)
 
 
 def make_layout():
@@ -125,7 +122,7 @@ def make_layout():
                 ]
             ),
 
-            # MAIN WORKSPACE
+            # MAIN CONTAINER
             html.Div(
                 id="main-workspace",
                 style={
@@ -137,8 +134,7 @@ def make_layout():
                     "boxSizing": "border-box"
                 },
                 children=[
-
-                    # LARGE MAP CARD
+                    # MAP CARD
                     html.Div(
                         style=card_style(),
                         children=[
@@ -156,12 +152,7 @@ def make_layout():
                                         children=[
                                             html.H3(
                                                 "Spatial Monthly Z-Score & Uncertainty Forecasts",
-                                                style={
-                                                    "margin": "0 0 10px 0",
-                                                    "color": "#172033",
-                                                    "fontSize": "20px",
-                                                    "fontWeight": "800"
-                                                }
+                                                style={"margin": "0 0 10px 0", "color": "#172033", "fontSize": "20px", "fontWeight": "800"}
                                             ),
                                             dcc.RadioItems(
                                                 id="map-view-toggle",
@@ -171,35 +162,16 @@ def make_layout():
                                                 ],
                                                 value="severity",
                                                 inline=True,
-                                                style={
-                                                    "fontSize": "14px",
-                                                    "color": "#172033"
-                                                },
-                                                inputStyle={
-                                                    "marginRight": "6px",
-                                                    "marginLeft": "0px"
-                                                },
-                                                labelStyle={
-                                                    "marginRight": "18px"
-                                                }
+                                                style={"fontSize": "14px", "color": "#172033"},
+                                                inputStyle={"marginRight": "6px", "marginLeft": "0px"},
+                                                labelStyle={"marginRight": "18px"}
                                             )
                                         ]
                                     ),
-
                                     html.Div(
-                                        style={
-                                            "minWidth": "260px"
-                                        },
+                                        style={"minWidth": "260px"},
                                         children=[
-                                            html.Strong(
-                                                "Target Month:",
-                                                style={
-                                                    "fontSize": "14px",
-                                                    "display": "block",
-                                                    "marginBottom": "6px",
-                                                    "color": "#172033"
-                                                }
-                                            ),
+                                            html.Strong("Target Month:", style={"fontSize": "14px", "display": "block", "marginBottom": "6px", "color": "#172033"}),
                                             dcc.Dropdown(
                                                 id="month-slider",
                                                 options=[
@@ -212,16 +184,12 @@ def make_layout():
                                                 value=4,
                                                 clearable=False,
                                                 searchable=False,
-                                                style={
-                                                    "fontSize": "14px",
-                                                    "color": "#172033"
-                                                }
+                                                style={"fontSize": "14px", "color": "#172033"}
                                             )
                                         ]
                                     )
                                 ]
                             ),
-
                             html.Div(
                                 style=graph_wrapper_style("760px"),
                                 children=[
@@ -230,10 +198,7 @@ def make_layout():
                                         figure=INITIAL_MAP,
                                         responsive=True,
                                         style=graph_style(),
-                                        config={
-                                            "displayModeBar": True,
-                                            "scrollZoom": True
-                                        }
+                                        config={"displayModeBar": True, "scrollZoom": True}
                                     )
                                 ]
                             )
@@ -254,15 +219,7 @@ def make_layout():
                                     "flexWrap": "wrap"
                                 },
                                 children=[
-                                    html.H3(
-                                        "Yearly Historical Averages & Crime Type Totals",
-                                        style={
-                                            "margin": 0,
-                                            "color": "#172033",
-                                            "fontSize": "20px",
-                                            "fontWeight": "800"
-                                        }
-                                    ),
+                                    html.H3("Yearly Historical Averages & Crime Type Totals", style={"margin": 0, "color": "#172033", "fontSize": "20px", "fontWeight": "800"}),
                                     dcc.RadioItems(
                                         id="pcp-mode-toggle",
                                         options=[
@@ -271,31 +228,16 @@ def make_layout():
                                         ],
                                         value="momentum",
                                         inline=True,
-                                        style={
-                                            "fontSize": "14px",
-                                            "color": "#172033"
-                                        },
-                                        inputStyle={
-                                            "marginRight": "6px"
-                                        },
-                                        labelStyle={
-                                            "marginRight": "18px"
-                                        }
+                                        style={"fontSize": "14px", "color": "#172033"},
+                                        inputStyle={"marginRight": "6px"},
+                                        labelStyle={"marginRight": "18px"}
                                     )
                                 ]
                             ),
-
                             html.Div(
                                 style=graph_wrapper_style("460px"),
                                 children=[
-                                    dcc.Graph(
-                                        id="pcp-graph",
-                                        responsive=True,
-                                        style=graph_style(),
-                                        config={
-                                            "displayModeBar": False
-                                        }
-                                    )
+                                    dcc.Graph(id="pcp-graph", responsive=True, style=graph_style(), config={"displayModeBar": False})
                                 ]
                             )
                         ]
@@ -309,20 +251,13 @@ def make_layout():
                             html.Div(
                                 style=graph_wrapper_style("430px"),
                                 children=[
-                                    dcc.Graph(
-                                        id="distribution-boxplot",
-                                        responsive=True,
-                                        style=graph_style(),
-                                        config={
-                                            "displayModeBar": False
-                                        }
-                                    )
+                                    dcc.Graph(id="distribution-boxplot", responsive=True, style=graph_style(), config={"displayModeBar": False})
                                 ]
                             )
                         ]
                     ),
 
-                    # TIME SERIES CARD
+                    # LINE CHART CARD
                     html.Div(
                         style=card_style(),
                         children=[
@@ -330,20 +265,13 @@ def make_layout():
                             html.Div(
                                 style=graph_wrapper_style("430px"),
                                 children=[
-                                    dcc.Graph(
-                                        id="timeseries-graph",
-                                        responsive=True,
-                                        style=graph_style(),
-                                        config={
-                                            "displayModeBar": False
-                                        }
-                                    )
+                                    dcc.Graph(id="timeseries-graph", responsive=True, style=graph_style(), config={"displayModeBar": False})
                                 ]
                             )
                         ]
                     ),
 
-                    # TABLE CARD
+                    # GRANULAR TABLE CARD
                     html.Div(
                         style=card_style(),
                         children=[
@@ -354,83 +282,70 @@ def make_layout():
                                 sort_action="native",
                                 filter_action="native",
                                 sort_mode="multi",
-                                style_table={
-                                    "overflowX": "auto",
-                                    "borderRadius": "12px",
-                                    "overflow": "hidden"
-                                },
-                                style_header={
-                                    "backgroundColor": "#eef4fb",
-                                    "fontWeight": "bold",
-                                    "border": "1px solid #dbe3ef",
-                                    "color": "#172033",
-                                    "fontSize": "14px"
-                                },
-                                style_cell={
-                                    "textAlign": "left",
-                                    "padding": "11px",
-                                    "fontFamily": "Arial, sans-serif",
-                                    "fontSize": "13px",
-                                    "border": "1px solid #edf1f7",
-                                    "color": "#263244",
-                                    "minWidth": "120px",
-                                    "maxWidth": "360px",
-                                    "whiteSpace": "normal"
-                                },
-                                style_data_conditional=[
-                                    {
-                                        "if": {"row_index": "odd"},
-                                        "backgroundColor": "#fafcff"
-                                    }
-                                ]
+                                style_table={"overflowX": "auto", "borderRadius": "12px", "overflow": "hidden"},
+                                style_header={"backgroundColor": "#eef4fb", "fontWeight": "bold", "border": "1px solid #dbe3ef", "color": "#172033", "fontSize": "14px"},
+                                style_cell={"textAlign": "left", "padding": "11px", "fontFamily": "Arial, sans-serif", "fontSize": "13px", "border": "1px solid #edf1f7", "color": "#263244", "minWidth": "120px", "maxWidth": "360px", "whiteSpace": "normal"},
+                                style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#fafcff"}]
                             )
                         ]
                     ),
 
+                    # PATROL CONTROL STATION
                     html.Div(
-
-                        style={"backgroundColor": "white", "padding": "15px", "borderRadius": "8px",
-                               "boxShadow": "0 1px 3px rgba(0,0,0,0.05)", "flexShrink": 0},
+                        style=card_style(),
                         children=[
-                            # UPDATED TITLE
-                            html.H4("Patrol Planner",
-                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
-                            html.H2("Select Police Force",
-                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
+                            section_title("Patrol Planner"),
+                            html.H5("Select Police Force Area Jurisdiction", style={"margin": "0 0 8px 0", "color": "#2c3e50"}),
                             dcc.Dropdown(
                                 id="pfa-dropdown",
-                                options=[
-                                    {"label": pfa, "value": pfa}
-                                    for pfa in sorted(PFA_DATA.keys())
-                                ],
-                                value=list(PFA_DATA.keys())[0],  # default selection
-                                clearable=False
+                                options=[{"label": pfa, "value": pfa} for pfa in sorted(PFA_DATA.keys())],
+                                value=list(PFA_DATA.keys())[0],
+                                clearable=False,
+                                style={"marginBottom": "15px"}
                             ),
-                            html.H2("Select start LSOA of patrol",
-                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
+                            html.H5("Select Operational Origin Node (Start LSOA)", style={"margin": "0 0 8px 0", "color": "#2c3e50"}),
                             dcc.Dropdown(
                                 id="start-lsoa-dropdown",
-                                placeholder="Select starting LSOA"
+                                placeholder="Select starting LSOA",
+                                style={"marginBottom": "15px"}
                             ),
-                            html.H2("LSOA visits of patrol",
-                                    style={"margin": "0 0 15px 0", "color": "#2c3e50", "fontSize": "16px"}),
+                            html.H5("Patrol Shift Duration Coverage (Number of Node Visits)", style={"margin": "0 0 8px 0", "color": "#2c3e50"}),
                             dcc.Input(
                                 id="patrol-length",
                                 type="number",
                                 min=1,
                                 value=10,
-                                placeholder="Number of stops"
+                                placeholder="Number of stops",
+                                style={"width": "100%", "padding": "8px", "marginBottom": "15px", "borderRadius": "6px", "border": "1px solid #ccc"}
                             ),
-
                             html.Button(
-                                "Generate Patrol",
+                                "Generate Routine Deployment Path",
                                 id="generate-button",
-                                n_clicks=0
+                                n_clicks=0,
+                                style={"padding": "12px 20px", "backgroundColor": "#245c97", "color": "white", "border": "none", "borderRadius": "8px", "fontWeight": "bold", "cursor": "pointer"}
                             ),
                             html.Div(id="pfa-info"),
-                            html.Div(id="patrol-output")
+                            html.Div(id="patrol-output", style={"marginTop": "15px", "backgroundColor": "#f8fafc", "border": "1px solid #e2e8f0", "borderRadius": "8px"})
                         ]
+                    ),
 
+                    # CCTV PRIORITY REPORT CARD
+                    html.Div(
+                        style=card_style(),
+                        children=[
+                            section_title("Selected LSOAs Ranked by CCTV Priority"),
+                            dash_table.DataTable(
+                                id="cctv-priority-table",
+                                page_size=10,
+                                sort_action="native",
+                                filter_action="native",
+                                sort_mode="multi",
+                                style_table={"overflowX": "auto", "borderRadius": "12px", "overflow": "hidden"},
+                                style_header={"backgroundColor": "#eef4fb", "fontWeight": "bold", "border": "1px solid #dbe3ef", "color": "#172033", "fontSize": "14px"},
+                                style_cell={"textAlign": "left", "padding": "11px", "fontFamily": "Arial, sans-serif", "fontSize": "13px", "border": "1px solid #edf1f7", "color": "#263244", "minWidth": "120px", "maxWidth": "360px", "whiteSpace": "normal"},
+                                style_data_conditional=[{"if": {"row_index": "odd"}, "backgroundColor": "#fafcff"}]
+                            )
+                        ]
                     )
                 ]
             )

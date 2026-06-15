@@ -4,6 +4,7 @@ import concurrent.futures
 import os
 import warnings
 import logging
+import config
 
 # Not allowing prophet to send warning messages in the terminal.
 warnings.filterwarnings('ignore')
@@ -15,7 +16,7 @@ def forecast_single_lsoa_summer(lsoa_id, historical_data):
     This function takes one LSOA and predicts its future for the next 5 months.
     """
     try:
-        #Making sure that the prediction will be 0 when there are less than 2 months containing crime data.
+        # Making sure that the prediction will be 0 when there are less than 2 months containing crime data.
         if len(historical_data) < 2:
             dates = pd.date_range(start='2026-04-01', periods=5, freq='MS')
             return pd.DataFrame({
@@ -26,36 +27,37 @@ def forecast_single_lsoa_summer(lsoa_id, historical_data):
                 'LSOA_ID': [lsoa_id] * 5
             })
 
-        #Making sure Prophet uses the Month column as the time stamps and the Total CII score as the data to train for.
+        # Making sure Prophet uses the Month column as the time stamps and the Total CII score as the data to train for.
         df = historical_data.rename(columns={'Month': 'ds', 'Total_CII_Score': 'y'})
 
-        #Dynamically clipping extreme historical outliers to prevent predictive warping
+        # Dynamically clipping extreme historical outliers to prevent predictive warping
         local_max = df['y'].quantile(0.95)
         df['y'] = df['y'].clip(upper=local_max)
 
-        #Initializing the model and making sure that the model only accounts for yearly seasonality.
+        # Initializing the model and making sure that the model only accounts for yearly seasonality.
         m = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
         m.fit(df)
 
-        #Predicting for the next 5 months (April, May, June, July, August 2026).
+        # Predicting for the next 5 months (April, May, June, July, August 2026).
         future = m.make_future_dataframe(periods=5, freq='MS')
         forecast = m.predict(future)
 
-        #Extracting the predictions for the 5 newly generated months and attaching the LSOA ID.
+        # Extracting the predictions for the 5 newly generated months and attaching the LSOA ID.
         prediction_rows = forecast.tail(5)[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].copy()
         prediction_rows['LSOA_ID'] = lsoa_id
 
         return prediction_rows
 
     except Exception as e:
-        #Making sure the algorithm does not crash if the future for a specific LSOA cannot be predicted.
+        # Making sure the algorithm does not crash if the future for a specific LSOA cannot be predicted.
         print(f'A prediction cannot be made for {lsoa_id}: {e}')
         return None
 
 
 if __name__ == '__main__':
 
-    prophet_training_data = pd.read_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Training Data\prophet_input.csv")
+    # Using config for the input data
+    prophet_training_data = pd.read_csv(config.PROPHET_INPUT_CSV)
     prophet_training_data['Month'] = pd.to_datetime(prophet_training_data['Month'])
 
     start_date = pd.to_datetime('2023-04-01')
@@ -64,7 +66,7 @@ if __name__ == '__main__':
     prophet_training_data = prophet_training_data[
         (prophet_training_data['Month'] >= start_date) &
         (prophet_training_data['Month'] <= end_date)
-    ]
+        ]
 
     all_lsoas = prophet_training_data['LSOA_ID'].unique()
 
@@ -73,7 +75,9 @@ if __name__ == '__main__':
 
     print(f'Detected {total_cores} CPU cores. Performing the multi-month Prophet algorithm with {safe_cores} workers.')
 
-    pd.DataFrame(columns=['ds', 'yhat', 'yhat_lower', 'yhat_upper', 'LSOA_ID']).to_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Forecasting Results\summer_2026_forecast.csv", index=False)
+    # Using config to initialize the output file
+    pd.DataFrame(columns=['ds', 'yhat', 'yhat_lower', 'yhat_upper', 'LSOA_ID']).to_csv(config.SUMMER_FORECAST_CSV,
+                                                                                       index=False)
 
     all_predictions = []
 
@@ -84,7 +88,7 @@ if __name__ == '__main__':
             lsoa_data = prophet_training_data[prophet_training_data['LSOA_ID'] == lsoa].copy()
             futures.append(executor.submit(forecast_single_lsoa_summer, lsoa, lsoa_data))
 
-        #Storing the forecasting results for each LSOA for the next 5 months.
+        # Storing the forecasting results for each LSOA for the next 5 months.
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             result = future.result()
 
@@ -96,7 +100,8 @@ if __name__ == '__main__':
                 chunk_df['yhat_lower'] = chunk_df['yhat_lower'].clip(lower=0)
                 chunk_df['yhat_upper'] = chunk_df['yhat_upper'].clip(lower=0)
 
-                chunk_df.to_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Forecasting Results\summer_2026_forecast.csv", mode='a', header=False, index=False)
+                # Using config to append to the output file
+                chunk_df.to_csv(config.SUMMER_FORECAST_CSV, mode='a', header=False, index=False)
 
                 print(f'Safely saved {i + 1} / {len(all_lsoas)} LSOAs to disk.')
 
@@ -107,8 +112,11 @@ if __name__ == '__main__':
         chunk_df['yhat'] = chunk_df['yhat'].clip(lower=0)
         chunk_df['yhat_lower'] = chunk_df['yhat_lower'].clip(lower=0)
         chunk_df['yhat_upper'] = chunk_df['yhat_upper'].clip(lower=0)
-        chunk_df.to_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Forecasting Results\summer_2026_forecast.csv", mode='a', header=False, index=False)
+
+        # Using config to append the final batch
+        chunk_df.to_csv(config.SUMMER_FORECAST_CSV, mode='a', header=False, index=False)
         print("Final batch saved successfully.")
 
-    saved_df = pd.read_csv(r"C:\Users\20241114\PycharmProjects\PythonProject\Prophet Forecasting\Forecasting Results\summer_2026_forecast.csv")
+    # Using config to read the saved results
+    saved_df = pd.read_csv(config.SUMMER_FORECAST_CSV)
     print(saved_df.head(10))

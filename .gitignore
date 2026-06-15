@@ -1,13 +1,50 @@
-# Dashboard generated/data files
+# =========================
+# Dashboard & Web Assets
+# =========================
 Dashboard/dashboard_data/
 Dashboard/*.parquet
 Dashboard/precompiled_map.json
 Dashboard/assets/lsoas.json
 
-# Python cache
+# =========================
+# Heavy Data & Databases (CRITICAL: Prevents 100MB Git Crash)
+# =========================
+*.csv
+*.parquet
+*.db
+*.duckdb
+*.xls
+*.xlsx
+
+# =========================
+# GIS & Spatial Files (Shapefiles are massive)
+# =========================
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.xml
+*.kml
+
+# =========================
+# Generated Output & Images
+# =========================
+*.png
+*.jpg
+*.jpeg
+
+# =========================
+# Python & Virtual Environments
+# =========================
 __pycache__/
 *.pyc
-
-# Virtual environments
 .venv/
 venv/
+env/
+
+# =========================
+# IDEs & Editor Configurations
+# =========================
+.idea/
+.DS_Store

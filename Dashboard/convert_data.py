@@ -1,15 +1,12 @@
 import pandas as pd
 import geopandas as gpd
 import os
-
+import config
 
 def bake_to_parquet():
-    data_folder = "dashboard_data"
-
-    shapefile_path = os.path.join(data_folder, "LSOA_2021_EW_BFC_V10.shp")
-
     print("Reading Shapefile...")
-    gdf = gpd.read_file(shapefile_path)[["LSOA21CD", "LSOA21NM", "geometry"]]
+    # Using config to grab the raw shapefile directly from the Datasets folder
+    gdf = gpd.read_file(config.LSOA_SHAPEFILE)[["LSOA21CD", "LSOA21NM", "geometry"]]
 
     print("Setting original British National Grid CRS...")
     gdf.set_crs(epsg=27700, inplace=True, allow_override=True)
@@ -18,35 +15,41 @@ def bake_to_parquet():
     gdf = gdf.to_crs(epsg=4326)
 
     print("Saving to lightweight GeoParquet...")
-    gdf.to_parquet("lsoas_boundaries.parquet")
+    # Using config to drop the finished file straight into the Dashboard folder
+    gdf.to_parquet(config.LSOA_BOUNDARIES_PARQUET)
     print("Shapefile successfully converted.")
 
-    forecast_path = os.path.join(data_folder, "summer_2026_forecast.csv")
-    pd.read_csv(forecast_path).to_parquet("summer_2026_forecast.parquet")
+    # Forecast
+    pd.read_csv(config.SUMMER_FORECAST_CSV).to_parquet(config.SUMMER_FORECAST_PARQUET)
     print("Forecast converted.")
 
+    # Z-Scores
     months = ["04", "05", "06", "07", "08"]
-
     for month in months:
-        z_csv_path = os.path.join(data_folder, f"z_scores_2026_{month}.csv")
-        z_parquet_name = f"z_scores_2026_{month}.parquet"
+        # Grab the CSV from the forecast results directory
+        z_csv_path = os.path.join(config.FORECAST_RESULTS_DIR, f"z_scores_2026_{month}.csv")
+        # Save the Parquet file directly into the Dashboard directory
+        z_parquet_path = os.path.join(config.DASHBOARD_DIR, f"z_scores_2026_{month}.parquet")
 
         if os.path.exists(z_csv_path):
-            pd.read_csv(z_csv_path).to_parquet(z_parquet_name)
-            print(f"Successfully converted {z_parquet_name}")
+            pd.read_csv(z_csv_path).to_parquet(z_parquet_path)
+            print(f"Successfully converted z_scores_2026_{month}.parquet")
         else:
             print(f"Warning: Could not find {z_csv_path}")
 
-    time_path = os.path.join(data_folder, "prophet_input.csv")
-    pd.read_csv(time_path).to_parquet("prophet_input.parquet")
+    # Time Series (Prophet Input)
+    pd.read_csv(config.PROPHET_INPUT_CSV).to_parquet(config.PROPHET_INPUT_PARQUET)
     print("Time Series converted.")
 
-    types_path = os.path.join(data_folder, "pcp_crime_types.csv")
-    pd.read_csv(types_path).to_parquet("pcp_crime_types.parquet")
+    # Crime Types
+    pd.read_csv(config.CRIME_TYPES_CSV).to_parquet(config.CRIME_TYPES_PARQUET)
     print("Crime Types converted.")
 
-    print("All files successfully converted to Parquet!")
+    # CCTV Priority
+    pd.read_csv(config.CCTV_PRIORITY_CSV).to_parquet(config.CCTV_PRIORITY_PARQUET)
+    print("CCTV Priority converted.")
 
+    print("All files successfully converted to Parquet and ready for the Dashboard!")
 
 if __name__ == "__main__":
     bake_to_parquet()
