@@ -4,10 +4,12 @@ import os
 import config
 
 # Import your heavy data directly from your data engine
-from data import GDF_MASTER, BAKED_GEOJSON
+from data import load_and_prepare_data
 
 def compile_base_map():
     print("Stitching 34,000 polygons together... This may take a minute...")
+
+    GDF_MASTER, _, _, _, _, BAKED_GEOJSON = load_and_prepare_data()
 
     # We use the raw Python dictionary (BAKED_GEOJSON) here to ensure it doesn't get lost
     fig = px.choropleth_mapbox(
