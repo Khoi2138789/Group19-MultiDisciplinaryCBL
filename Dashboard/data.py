@@ -139,7 +139,7 @@ def load_and_prepare_data():
         z_path = os.path.join(config.DASHBOARD_DIR, f"z_scores_2026_{month}.parquet")
 
         if os.path.exists(z_path):
-            df_z = pd.read_csv(z_path)
+            df_z = pd.read_parquet(z_path)
 
             # Rename 'z_score' to 'z_score_04', 'z_score_05', etc., to avoid overlapping columns
             df_z = df_z.rename(columns={'z_score': f'z_score_{month}'})
@@ -155,7 +155,6 @@ def load_and_prepare_data():
 
     # --- 7. SPATIAL OPTIMIZATION ---
     if needs_recalc:
-        print("Baking highly accurate boundaries to GeoJSON (Fast Method)...")
         gdf_master = gpd.GeoDataFrame(gdf_master, geometry='geometry')
 
         # print("Simplifying polygons for browser rendering...")

@@ -5,7 +5,6 @@ import json
 import os
 import config
 
-print("Loading geographic shapefiles...")
 lsoa = gpd.read_file(config.LSOA_SHAPEFILE)
 pfa = gpd.read_file(config.PFA_SHAPEFILE)
 
