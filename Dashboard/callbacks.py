@@ -151,7 +151,8 @@ def register_callbacks(app):
         Input("selected-time-window", "data")
     )
     def update_table(selected_lsoas, time_window):
-        plot_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)] if selected_lsoas else GDF_MASTER.sort_values("yhat", ascending=False).head(100)
+        # CHANGED: Removed .head(100) - now shows ALL LSOAs by default
+        plot_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)] if selected_lsoas else GDF_MASTER
 
         if time_window:
             start_date, end_date = time_window
@@ -167,18 +168,25 @@ def register_callbacks(app):
             filtered_df = filtered_df.merge(name_map, on="LSOA_ID")
             display_cols = ["LSOA_NAME", "LSOA_ID", "Intensity"]
         else:
-            filtered_df = plot_df.rename(columns={"yhat": "Predicted Crime Intensity Score", "yhat_lower": "Lower Certainty Bound", "yhat_upper": "Upper Certainty Bound"})
-            display_cols = ["LSOA_NAME", "LSOA_ID", "Predicted Crime Intensity Score", "Lower Certainty Bound", "Upper Certainty Bound"]
+            filtered_df = plot_df.rename(
+                columns={"yhat": "Predicted Crime Intensity Score", "yhat_lower": "Lower Certainty Bound",
+                         "yhat_upper": "Upper Certainty Bound"})
+            display_cols = ["LSOA_NAME", "LSOA_ID", "Predicted Crime Intensity Score", "Lower Certainty Bound",
+                            "Upper Certainty Bound"]
 
         filtered_df = filtered_df[display_cols].round(2)
-        pretty_names = {"LSOA_NAME": "Area Name", "LSOA_ID": "Area Code", "Predicted Crime Intensity Score": "Predicted Intensity", "Lower Certainty Bound": "Lower Bound", "Upper Certainty Bound": "Upper Bound", "Intensity": "Historical Intensity"}
+        pretty_names = {"LSOA_NAME": "Area Name", "LSOA_ID": "Area Code",
+                        "Predicted Crime Intensity Score": "Predicted Intensity",
+                        "Lower Certainty Bound": "Lower Bound", "Upper Certainty Bound": "Upper Bound",
+                        "Intensity": "Historical Intensity"}
 
         columns = []
         for col in display_cols:
             if col in ["LSOA_NAME", "LSOA_ID"]:
                 columns.append({"name": pretty_names.get(col, col), "id": col, "type": "text"})
             else:
-                columns.append({"name": pretty_names.get(col, col), "id": col, "type": "numeric", "format": {"specifier": ",.2f"}})
+                columns.append(
+                    {"name": pretty_names.get(col, col), "id": col, "type": "numeric", "format": {"specifier": ",.2f"}})
         return filtered_df.to_dict("records"), columns
 
     @app.callback(
@@ -191,15 +199,18 @@ def register_callbacks(app):
         if GDF_MASTER is None or GDF_MASTER.empty:
             return go.Figure().update_layout(template="simple_white", title="Loading...")
 
-        plot_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)].reset_index(drop=True) if selected_lsoas else GDF_MASTER.copy().reset_index(drop=True)
+        plot_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)].reset_index(
+            drop=True) if selected_lsoas else GDF_MASTER.copy().reset_index(drop=True)
         df_month = DF_FORECAST[pd.to_datetime(DF_FORECAST["ds"]).dt.month == month_value]
         month_yhat = df_month.groupby("LSOA_ID")["yhat"].mean().reset_index()
         month_yhat.rename(columns={"yhat": "target_month_yhat"}, inplace=True)
 
         plot_df = plot_df.merge(month_yhat, on="LSOA_ID", how="left").replace([np.inf, -np.inf], 0).fillna(0)
         axes = MOMENTUM_AXES + ["target_month_yhat"] if mode == "momentum" else CRIME_AXES + ["target_month_yhat"]
-        if not selected_lsoas and len(plot_df) > 1500:
-            plot_df = plot_df.sort_values("target_month_yhat", ascending=False).head(1500)
+
+        # CHANGED: Now samples 5000 random LSOAs instead of picking the top 1500
+        if not selected_lsoas and len(plot_df) > 5000:
+            plot_df = plot_df.sample(n=5000, random_state=42)
 
         dimensions = []
         for col in axes:
@@ -211,7 +222,8 @@ def register_callbacks(app):
             line=dict(color=plot_df["target_month_yhat"], colorscale="Reds", showscale=False),
             dimensions=dimensions, labelfont=dict(size=12, color="#1f2d3d"), tickfont=dict(size=10, color="#334155")
         ))
-        fig.update_layout(margin=dict(l=35, r=35, t=20, b=20), paper_bgcolor="white", plot_bgcolor="white", font=dict(family="Arial", size=12, color="#1f2d3d"))
+        fig.update_layout(margin=dict(l=35, r=35, t=20, b=20), paper_bgcolor="white", plot_bgcolor="white",
+                          font=dict(family="Arial", size=12, color="#1f2d3d"))
         return fig
 
     @app.callback(
