@@ -218,12 +218,27 @@ def register_callbacks(app):
             label_text = f"Predicted {month_value}/2026" if col == "target_month_yhat" else str(col)
             dimensions.append(dict(label=label_text, values=plot_df[col], range=[0, max(max_val, 1)]))
 
+        N = len(axes)
+        bottom_labels = []
+        for i, col in enumerate(axes):
+            label_text = f"Predicted {month_value}/2026" if col == "target_month_yhat" else str(col)
+            x_pos = i / (N - 1) if N > 1 else 0.5
+            bottom_labels.append(dict(
+                x=x_pos, y=0.06,
+                xref="paper", yref="paper",
+                text=label_text,
+                showarrow=False,
+                font=dict(size=11, color="#1f2d3d", family="Arial"),
+                xanchor="center", yanchor="top"
+            ))
+
         fig = go.Figure(data=go.Parcoords(
             line=dict(color=plot_df["target_month_yhat"], colorscale="Reds", showscale=False),
-            dimensions=dimensions, labelfont=dict(size=12, color="#1f2d3d"), tickfont=dict(size=10, color="#334155")
+            dimensions=dimensions, labelfont=dict(size=12, color="#1f2d3d"), tickfont=dict(size=10, color="#334155"),
+            domain={"y": [0.18, 1.0]}
         ))
-        fig.update_layout(margin=dict(l=35, r=35, t=20, b=20), paper_bgcolor="white", plot_bgcolor="white",
-                          font=dict(family="Arial", size=12, color="#1f2d3d"))
+        fig.update_layout(margin=dict(l=35, r=35, t=20, b=50), paper_bgcolor="white", plot_bgcolor="white",
+                          font=dict(family="Arial", size=12, color="#1f2d3d"), annotations=bottom_labels)
         return fig
 
     @app.callback(
