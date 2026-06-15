@@ -1,5 +1,5 @@
 import random
-
+random.seed(0)
 
 class Walker:
     """

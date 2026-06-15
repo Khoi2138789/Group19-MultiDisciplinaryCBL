@@ -534,7 +534,7 @@ def register_callbacks(app):
                 target = nodes_by_id[nid]
                 graph.add_edge(source, target)
         
-        path = Path(memory=patrol_length)
+        path = Path(memory=5)
 
         walker = Walker(graph, path)
         start = nodes_by_id[start_lsoa]

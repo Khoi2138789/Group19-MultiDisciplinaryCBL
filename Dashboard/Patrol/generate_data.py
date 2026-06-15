@@ -8,8 +8,15 @@ lsoa = gpd.read_file("/home/user0/Downloads/LSOA_2021_EW_BFC_V10.shp")
 pfa = gpd.read_file("/home/user0/Downloads/PFA_DEC_2021_EW_BFC.shp")
 z = pd.read_csv("/home/user0/Downloads/z_scores_2026_05.csv")
 
+remove = [
+    "Greater Manchester",
+    "North Wales",
+    "Dyfed-Powys",
+    "South Wales",
+    "Gwent"
+]
 
-w = Queen.from_dataframe(lsoa)
+pfa = pfa[~pfa["PFA21NM"].isin(remove)]
 
 lsoa = lsoa.merge(
     z,
@@ -22,9 +29,11 @@ lsoa = lsoa.to_crs(pfa.crs)
 joined = gpd.sjoin(
     lsoa,
     pfa,
-    how="left",
-    predicate="intersects"
-)
+    how="inner",
+    predicate="within"
+).reset_index(drop=True)
+
+w = Queen.from_dataframe(joined)
 
 sindex = joined.sindex
 
