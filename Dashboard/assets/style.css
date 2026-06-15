@@ -1,0 +1,143 @@
+/* =========================================================
+   Clean dashboard visual styling only
+   This version avoids forcing the layout structure.
+   ========================================================= */
+
+:root {
+    --bg: #f4f7fb;
+    --card: #ffffff;
+    --text: #172033;
+    --muted: #64748b;
+    --border: #dbe3ef;
+    --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    --radius: 16px;
+    --blue: #245c97;
+    --blue-dark: #1d3148;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--bg) !important;
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Main dashboard background */
+#_dash-app-content {
+    background: var(--bg) !important;
+    min-height: 100vh;
+}
+
+/* Header bar */
+#reset-btn {
+    background: var(--blue) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 12px !important;
+    padding: 10px 18px !important;
+    font-weight: 700 !important;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(36, 92, 151, 0.25);
+}
+
+#reset-btn:hover {
+    background: #1f4f82 !important;
+}
+
+/* General text */
+h1, h2, h3, h4 {
+    color: var(--text) !important;
+    letter-spacing: -0.02em;
+}
+
+h1 {
+    font-size: 28px !important;
+    font-weight: 800 !important;
+}
+
+h2, h3 {
+    font-weight: 750 !important;
+}
+
+/* Cards: keep original layout but improve appearance */
+div[style*="backgroundColor: white"],
+div[style*="background-color: white"],
+div[style*="backgroundColor:white"],
+div[style*="background-color:white"] {
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow) !important;
+    border: 1px solid var(--border) !important;
+}
+
+/* Graph containers */
+.js-plotly-plot {
+    border-radius: 12px;
+}
+
+/* Make graph modebar less distracting */
+.modebar {
+    opacity: 0.25;
+    transition: opacity 0.2s ease;
+}
+
+.modebar:hover {
+    opacity: 1;
+}
+
+/* Dropdowns */
+.Select-control,
+.dash-dropdown,
+input,
+select {
+    border-radius: 10px !important;
+    border-color: var(--border) !important;
+}
+
+/* Radio labels */
+label {
+    color: var(--text) !important;
+    font-weight: 500;
+}
+
+/* Slider styling */
+.rc-slider-track {
+    background-color: var(--blue) !important;
+}
+
+.rc-slider-dot-active,
+.rc-slider-handle {
+    border-color: var(--blue) !important;
+}
+
+.rc-slider-handle {
+    box-shadow: 0 0 0 4px rgba(36, 92, 151, 0.12) !important;
+}
+
+/* Data table */
+#details-datatable {
+    border-radius: 14px !important;
+    overflow: hidden !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
+#details-datatable th {
+    background: #eef4fb !important;
+    color: var(--text) !important;
+    font-weight: 800 !important;
+    border-bottom: 1px solid var(--border) !important;
+}
+
+#details-datatable td {
+    color: #263244 !important;
+    border-bottom: 1px solid #edf1f7 !important;
+}
+
+/* Avoid horizontal overflow */
+body,
+html {
+    overflow-x: hidden;
+}
