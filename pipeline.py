@@ -4,27 +4,63 @@ import subprocess
 import time
 import config
 
+# Import papermill, with a graceful exit if it's missing
+try:
+    import papermill as pm
+except ImportError:
+    print("\n CRITICAL ERROR: 'papermill' is not installed.")
+    print(" Please install it by running: pip install papermill")
+    sys.exit(1)
+
 
 def run_script(script_path):
-    """Executes a python script using the current environment interpreter."""
+    """Executes a python script or Jupyter notebook using the current environment."""
     script_name = os.path.basename(script_path)
     print(f"\n[{time.strftime('%H:%M:%S')}] ==================================================")
     print(f"[{time.strftime('%H:%M:%S')}] STARTING: {script_name}")
     print(f"[{time.strftime('%H:%M:%S')}] ==================================================")
 
     start_time = time.time()
+    success = False
 
-    # Use sys.executable to guarantee it runs inside your current PyCharm virtual environment
-    result = subprocess.run([sys.executable, script_path], capture_output=False, text=True)
+    # Route execution based on file extension
+    if script_path.endswith('.ipynb'):
+        try:
+            # Execute the notebook headlessly.
+            # Using the same path for both arguments overwrites the notebook in-place
+            # with the new cell outputs.
+            pm.execute_notebook(
+                input_path=script_path,
+                output_path=script_path
+            )
+            success = True
+        except pm.exceptions.PapermillExecutionError as e:
+            # Papermill throws an exception if a cell fails, rather than a return code
+            print(f"\n[{time.strftime('%H:%M:%S')}] !!! JUPYTER CELL EXECUTION FAILED !!!")
+            print(f"Details: {e}")
+            success = False
+        except Exception as e:
+            print(f"\n[{time.strftime('%H:%M:%S')}] !!! UNEXPECTED NOTEBOOK ERROR !!!")
+            print(f"Details: {e}")
+            success = False
+
+    else:
+        # Standard .py execution
+        result = subprocess.run([sys.executable, script_path], capture_output=False, text=True)
+        if result.returncode == 0:
+            success = True
+        else:
+            print(f"\n[{time.strftime('%H:%M:%S')}] !!! CRITICAL ERROR: exit code {result.returncode} !!!")
+            success = False
 
     elapsed_time = time.time() - start_time
 
-    if result.returncode == 0:
+    # Final success/fail logging
+    if success:
         print(f"[{time.strftime('%H:%M:%S')}] SUCCESS: {script_name} completed in {elapsed_time:.2f} seconds.")
         return True
     else:
-        print(
-            f"\n[{time.strftime('%H:%M:%S')}] !!! CRITICAL ERROR: {script_name} failed with exit code {result.returncode} !!!")
+        print(f"[{time.strftime('%H:%M:%S')}] !!! CRITICAL ERROR: {script_name} failed to complete. !!!")
         return False
 
 
@@ -57,21 +93,24 @@ if __name__ == "__main__":
         # --- PHASE 3: Production Forecasting ---
         os.path.join(config.PROPHET_DIR, "prophet_summer_2026.py"),
 
-        # --- PHASE 4: Spatial Analysis (Using your new config variable!) ---
+        # --- PHASE 4: Spatial Analysis ---
         os.path.join(config.SPATIAL_DIR, "spatial_analysis2.py"),
         os.path.join(config.SPATIAL_DIR, "spatial_analysis_z_scores.py"),
 
         # --- PHASE 5: Dashboard Asset Baking & Network Construction ---
         os.path.join(config.DASHBOARD_DIR, "convert_data.py"),
         os.path.join(config.DASHBOARD_DIR, "map_construction.py"),
-        os.path.join(config.PROPHET_DIR, "linechart.py")
+        os.path.join(config.PROPHET_DIR, "linechart.py"),
+
+        # --- PHASE 6: Contextualization analysis ---
+        os.path.join(config.CONTEXT_DIR, "crime_IMD_correlation.ipynb")
     ]
 
     # Sequential execution loop with fail-fast validation
     for step in steps:
         if not os.path.exists(step):
             print(f"\n CRITICAL ERROR: Script missing at {step}")
-            print(" Pipeline aborted. Please check your filenames and paths in main_pipeline.py.")
+            print(" Pipeline aborted. Please check your filenames and paths in pipeline.py.")
             sys.exit(1)
 
         success = run_script(step)

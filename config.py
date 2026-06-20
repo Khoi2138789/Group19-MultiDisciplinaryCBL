@@ -15,6 +15,7 @@ DUCKDB_DIR = os.path.join(PROJECT_ROOT, "DuckDB")
 PROPHET_DIR = os.path.join(PROJECT_ROOT, "Prophet Forecasting")
 DASHBOARD_DIR = os.path.join(PROJECT_ROOT, "Dashboard")
 SPATIAL_DIR = os.path.join(PROJECT_ROOT, "Spatial Analysis")
+CONTEXT_DIR = os.path.join(PROJECT_ROOT, "Contextual Demand")
 
 # Sub-directories voor specifieke taken
 TRAINING_DATA_DIR = os.path.join(PROPHET_DIR, "Training Data")

@@ -14,3 +14,5 @@ duckdb>=0.9.0
 pyarrow>=14.0.0
 scipy>=1.10.0
 pygame>=2.5.0
+papermill>=2.0.0
+nbconvert>=7.0.0
