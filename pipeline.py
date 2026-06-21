@@ -45,7 +45,7 @@ if __name__ == "__main__":
 
     steps = [
         os.path.join(config.DUCKDB_DIR, "DuckDB.py"),
-        os.path.join(config.DASHBOARD_DIR, "CCTV data.py"),
+        os.path.join(config.DASHBOARD_DIR, "CCTV_data.py"),
 
         os.path.join(config.PROPHET_DIR, "prophet_january_2026.py"),
         os.path.join(config.VALIDATION_DIR_JANUARY, "january_validation.py"),
