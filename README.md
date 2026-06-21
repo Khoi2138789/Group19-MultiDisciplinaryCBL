@@ -28,9 +28,6 @@ The running system is split into two parts:
 │   └── *.parquet / *.json                       # Precompiled spatial and forecast datafiles
 ├── Datasets/                                    # External datasets containing historical crime records, KMLs, shapefiles and excelsheets --> Download via zipfile
 ├── DuckDB/                                      # Local database files and processed CSV exports
-├── EDA/                                         # Exploratory Data Analysis notebook with results
-│   ├── EDA Results/                             # Output plots and statistical findings
-│   └── exploration_and_ data_merging.ipynb      # Main data merging and exploration notebook
 ├── pdf_report_maps/                             # Generated visualizations for exploratory purposes
 ├── Prophet Forecasting/                         # Predictive time-series modeling and execution
 │   ├── Forecasting Results/                     # Csv files containing forecasted results
