@@ -20,12 +20,12 @@ def run_script(script_path):
             )
             success = True
         except pm.exceptions.PapermillExecutionError as e:
-            # Papermill throws an exception if a cell fails, rather than a return code
-            print(f"\n[{time.strftime('%H:%M:%S')}] !!! JUPYTER CELL EXECUTION FAILED !!!")
+
+            print(f"\n[{time.strftime('%H:%M:%S')}] Jupyter execution failed.")
             print(f"Details: {e}")
             success = False
         except Exception as e:
-            print(f"\n[{time.strftime('%H:%M:%S')}] !!! UNEXPECTED NOTEBOOK ERROR !!!")
+            print(f"\n[{time.strftime('%H:%M:%S')}] Unexpected notebook error")
             print(f"Details: {e}")
             success = False
 
