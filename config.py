@@ -34,7 +34,6 @@ IMD_DATA_PATH = os.path.join(
     "File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv"
 )
 
-# Crime weights en notifiable offences mapping
 CRIME_WEIGHTS_XLS = os.path.join(DATA_DIR, "datatool.xls")
 OFFENCE_LIST_ODS = os.path.join(DATA_DIR, "notifiable-offence-and-notifiable-reported-incidents-april-2026.ods")
 POLICE_CRIME_DATA = os.path.join(DATA_DIR, "c5e365714b6c98084c564fd69b91ccde80ae9133")
