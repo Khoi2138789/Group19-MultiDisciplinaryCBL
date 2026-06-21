@@ -31,12 +31,14 @@ PFA_SHAPEFILE = os.path.join(
 
 IMD_DATA_PATH = os.path.join(
     DATA_DIR,
-    "File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv"
+    "2025_all_iod_scores_ranks_deciles.csv"
 )
 
 CRIME_WEIGHTS_XLS = os.path.join(DATA_DIR, "datatool.xls")
 OFFENCE_LIST_ODS = os.path.join(DATA_DIR, "notifiable-offence-and-notifiable-reported-incidents-april-2026.ods")
 POLICE_CRIME_DATA = os.path.join(DATA_DIR, "c5e365714b6c98084c564fd69b91ccde80ae9133")
+POLICE_CRIME_DATA_DC = os.path.join(DATA_DIR, "police")
+LSOA_DATA = os.path.join(DATA_DIR, "lsoa_2021_bgc.geojson")
 
 DUCKDB_DATABASE = os.path.join(PROJECT_ROOT, "monthly_crime_scores.db")
 
