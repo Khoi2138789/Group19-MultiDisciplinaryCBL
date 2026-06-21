@@ -15,13 +15,10 @@ if __name__ == '__main__':
     os.makedirs(output_folder, exist_ok=True)
     print(f"Output directory '{output_folder}/' is ready.")
 
-    print("Loading geographic shapefile...")
-
     map_path = config.LSOA_SHAPEFILE
     gdf_map = gpd.read_file(map_path)
     gdf_map = gdf_map.rename(columns={'LSOA21CD': 'LSOA_ID'})
 
-    print("Calculating the national geographic borders (this takes a minute, but only happens once)...")
     w = libpysal.weights.Queen.from_dataframe(gdf_map)
     w.transform = 'R'
 
@@ -44,13 +41,11 @@ if __name__ == '__main__':
         monthly_map_data = gdf_map.merge(monthly_preds, on='LSOA_ID', how='left')
         monthly_map_data['yhat'] = monthly_map_data['yhat'].fillna(0)
 
-        print("Calculating shifting spatial hotspots...")
         gi_star = G_Local(monthly_map_data['yhat'], w, transform='R', star=True)
 
         monthly_map_data['z_score'] = gi_star.Zs
         monthly_map_data['p_value'] = gi_star.p_sim
 
-        print("Rendering National Map...")
         fig, ax = plt.subplots(1, 1, figsize=(10, 10))
         monthly_map_data.plot(
             column='yhat', cmap='YlOrRd', linewidth=0.05, ax=ax, edgecolor='0.7',

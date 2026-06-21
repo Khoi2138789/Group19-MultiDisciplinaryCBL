@@ -33,7 +33,6 @@ def load_and_prepare_data():
 
     gdf_map = gdf_map[gdf_map['LSOA_ID'].str.startswith('E', na=False)]
 
-    print("Pivoting Crime Type profiles...")
     df_types = pd.read_parquet(HISTORICAL_CRIME_TYPES_PATH)
     df_pcp_types = df_types.pivot(index='LSOA_ID', columns='Crime_Type', values='Total_Intensity').fillna(
         0).reset_index()
@@ -57,7 +56,6 @@ def load_and_prepare_data():
     df_forecast['yhat_lower'] = df_forecast['yhat_lower'].clip(lower=0)
     df_forecast['yhat_upper'] = df_forecast['yhat_upper'].clip(lower=0)
 
-    print("Merging Spatial Master Dataset...")
     gdf_master = gdf_map.merge(df_pcp_types, on='LSOA_ID', how='left')
     gdf_master = gdf_master.merge(df_pcp_momentum, on='LSOA_ID', how='left')
 
@@ -70,7 +68,7 @@ def load_and_prepare_data():
 
         for col in ["unsolved_non_severe", "total_non_severe", "priority_level", "cctv_score", "cctv_rank"]:
             gdf_master[col] = gdf_master[col].fillna(0)
-        print("  -> CCTV priority metrics integrated smoothly.")
+
     else:
         gdf_master["unsolved_non_severe"] = 0
         gdf_master["total_non_severe"] = 0

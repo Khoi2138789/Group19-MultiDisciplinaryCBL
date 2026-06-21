@@ -53,7 +53,7 @@ for idx, neighbours in w.neighbors.items():
 
 result = {}
 
-print("Building Patrol Network Graph...")
+print("Building the Patrol Network Graph")
 for _, row in joined.iterrows():
     pfa_name = row["PFA21NM"]
     lsoa_code = row["LSOA_ID"]

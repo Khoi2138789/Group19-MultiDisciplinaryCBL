@@ -42,7 +42,6 @@ if __name__ == '__main__':
         monthly_map_data = gdf_map.merge(monthly_preds, on='LSOA_ID', how='left')
         monthly_map_data['yhat'] = monthly_map_data['yhat'].fillna(0)
 
-        print(f"Compute spatial hotspots for {title_month}...")
         gi_star = G_Local(monthly_map_data['yhat'], w, transform='R', star=True)
 
         monthly_map_data['z_score'] = gi_star.Zs

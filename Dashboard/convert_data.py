@@ -4,21 +4,17 @@ import os
 import config
 
 def bake_to_parquet():
-    print("Reading Shapefile...")
+
     gdf = gpd.read_file(config.LSOA_SHAPEFILE)[["LSOA21CD", "LSOA21NM", "geometry"]]
 
-    print("Setting original British National Grid CRS...")
     gdf.set_crs(epsg=27700, inplace=True, allow_override=True)
 
-    print("Reprojecting to standard web coordinates...")
     gdf = gdf.to_crs(epsg=4326)
 
-    print("Saving to lightweight GeoParquet...")
     gdf.to_parquet(config.LSOA_BOUNDARIES_PARQUET)
-    print("Shapefile successfully converted.")
+
 
     pd.read_csv(config.SUMMER_FORECAST_CSV).to_parquet(config.SUMMER_FORECAST_PARQUET)
-    print("Forecast converted.")
 
     months = ["04", "05", "06", "07", "08"]
     for month in months:
@@ -32,15 +28,12 @@ def bake_to_parquet():
             print(f"Warning: Could not find {z_csv_path}")
 
     pd.read_csv(config.PROPHET_INPUT_CSV).to_parquet(config.PROPHET_INPUT_PARQUET)
-    print("Time Series converted.")
+
 
     pd.read_csv(config.CRIME_TYPES_CSV).to_parquet(config.CRIME_TYPES_PARQUET)
-    print("Crime Types converted.")
 
     pd.read_csv(config.CCTV_PRIORITY_CSV).to_parquet(config.CCTV_PRIORITY_PARQUET)
-    print("CCTV Priority converted.")
-
-    print("All files successfully converted to Parquet and ready for the Dashboard!")
+    print("All CSV files have been successfully converted to Parquet format.")
 
 if __name__ == "__main__":
     bake_to_parquet()
