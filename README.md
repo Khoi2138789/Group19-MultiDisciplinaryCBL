@@ -75,7 +75,7 @@ The running system is split into two parts:
 
 4. **Download the Datasets**
    
-   Download the required datasets via the provided external zip link, extract them and create the  `Datasets` folder where the files can be placed into.
+   Download the required datasets via the provided external zip link, extract them and place the data within the validation folders in the corresponding validation folders with the same name in the folder named `Prophet Forecasting`. The `Datasets` folder should be placed in the root directory directly.
 
 
 
@@ -83,7 +83,7 @@ The running system is split into two parts:
 
 **1. Run `pipeline.py`**
 
-  Run `pipeline.py` to process the raw datasets, execute the Prophet time-series models and to compute the spatial Z-scores. This process might take hours due to heavy computational work.
+  Run `pipeline.py` to process the raw datasets, execute the Prophet time-series models and to compute the spatial Z-scores. This process might take hours due to heavy computational work related to prophet forecasting.
 
 **2. Run `app.py` located in the `Dashboard` folder**
 
