@@ -45,10 +45,9 @@ The running system is split into two parts:
 
 ## Setup and Installation
 
-1. **Clone the repository**
+1. **Create a new folder and clone the repository within this folder**
    ```bash
    git clone https://github.com/Khoi2138789/Group19-MultiDisciplinaryCBL.git
-   cd Group19-MultiDisciplinaryCBL
    ```
 
 2. **Set up a virtual environment**
