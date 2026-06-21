@@ -10,9 +10,9 @@ from walker import Walker
 
 random.seed(0)
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+input_path = os.path.join(config.DASHBOARD_DIR, "lsoa_by_pfa.json")
 
-with open(os.path.join(BASE_DIR, '../lsoa_by_pfa.json')) as f:
+with open(input_path, 'r') as f:
     PFA_DATA = json.load(f)
 
 print("generating tests")

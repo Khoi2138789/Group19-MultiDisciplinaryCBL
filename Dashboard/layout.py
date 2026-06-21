@@ -1,4 +1,7 @@
+import sys
 import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 import plotly.io as pio
 from dash import dcc, html, dash_table

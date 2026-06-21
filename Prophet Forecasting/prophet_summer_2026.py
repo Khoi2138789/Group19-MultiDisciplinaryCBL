@@ -1,7 +1,10 @@
 import pandas as pd
 from prophet import Prophet
 import concurrent.futures
+import sys
 import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import warnings
 import logging
 import config

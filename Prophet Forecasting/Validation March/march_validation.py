@@ -1,10 +1,12 @@
 import duckdb
 import pandas as pd
 from sklearn.metrics import mean_absolute_error
-
-import config
-import config
+import sys
 import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import config
+
 
 con = duckdb.connect(':memory:')
 
