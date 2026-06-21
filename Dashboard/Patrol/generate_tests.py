@@ -29,7 +29,16 @@ for pfa_name, lsoas in PFA_DATA.items():
 
     nodes_by_id = {}
 
-    # create nodes
+    for item in lsoas:
+
+        code = item.get("lsoa_code")
+        score = item.get("z_score", 0.0)
+        lat = item.get("lat")
+        lon = item.get("long")
+
+        if not all([code, lat, lon]):
+            continue
+
     for item in lsoas:
 
         node = Node(
@@ -44,7 +53,6 @@ for pfa_name, lsoas in PFA_DATA.items():
 
     pfa_lsoas = set(item["lsoa_code"] for item in lsoas)
 
-    # connect nodes
     for item in lsoas:
         source = nodes_by_id[item["lsoa_code"]]
 

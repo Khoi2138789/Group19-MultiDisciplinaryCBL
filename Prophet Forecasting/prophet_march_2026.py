@@ -64,9 +64,8 @@ if __name__ == '__main__':
         (prophet_training_data['Month'] <= end_date_val)
         ]
 
-    #Extracting all the LSOAs.
     all_lsoas = prophet_training_data['LSOA_ID'].unique()
-    #Allowing for only a maximum of n-1 workers for the process.
+
     total_cores = os.cpu_count()
     safe_cores = 12
 
@@ -76,47 +75,34 @@ if __name__ == '__main__':
     first_batch = True
     output_path = config.VALIDATION_FORECAST_MARCH_CSV
 
-    # Allowing for multiple workers at the same time.
     with concurrent.futures.ProcessPoolExecutor(max_workers=safe_cores) as executor:
 
         futures = []
         for lsoa in all_lsoas:
-            # Assigning for every worker only data of one LSOA at a time.
             lsoa_data = prophet_training_data[prophet_training_data['LSOA_ID'] == lsoa].copy()
             futures.append(executor.submit(forecast_single_lsoa, lsoa, lsoa_data))
 
-        # Storing the forecasting results for each LSOA
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             result = future.result()
 
             if result is not None:
                 all_predictions.append(result)
 
-            # --- BATCH PROCESSING LOGIC ---
-            # Every 1,000 LSOAs, process the batch, clip negatives, append to CSV, and clear RAM
             if (i + 1) % 1000 == 0:
                 df_batch = pd.concat(all_predictions, ignore_index=True)
-
-                # Clip impossible negative forecasts to 0
                 df_batch['yhat'] = df_batch['yhat'].clip(lower=0)
                 df_batch['yhat_lower'] = df_batch['yhat_lower'].clip(lower=0)
                 df_batch['yhat_upper'] = df_batch['yhat_upper'].clip(lower=0)
 
                 if first_batch:
-                    # First batch creates the file and writes the header
                     df_batch.to_csv(output_path, index=False, mode='w')
                     first_batch = False
                 else:
-                    # Subsequent batches append to the file without writing the header again
                     df_batch.to_csv(output_path, index=False, mode='a', header=False)
 
                 print(f'Appended batch to disk: {i + 1} / {len(all_lsoas)} LSOAs. RAM refreshed.')
-
-                # Clear the list to free up system memory
                 all_predictions = []
 
-    # --- FINAL BATCH PROCESSING ---
-    # Catch any remaining LSOAs that didn't perfectly fit into a 1,000-item batch at the end
     if all_predictions:
         df_final_batch = pd.concat(all_predictions, ignore_index=True)
 

@@ -2,7 +2,6 @@ import pandas as pd
 from pathlib import Path
 import config
 
-print("Loading raw crime data from the central config path...")
 data_folder = Path(config.POLICE_CRIME_DATA)
 files = list(data_folder.rglob("*-street.csv"))
 

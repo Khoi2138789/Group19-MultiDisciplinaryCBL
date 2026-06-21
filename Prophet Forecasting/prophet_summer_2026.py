@@ -30,19 +30,15 @@ def forecast_single_lsoa_summer(lsoa_id, historical_data):
         # Making sure Prophet uses the Month column as the time stamps and the Total CII score as the data to train for.
         df = historical_data.rename(columns={'Month': 'ds', 'Total_CII_Score': 'y'})
 
-        # Dynamically clipping extreme historical outliers to prevent predictive warping
         local_max = df['y'].quantile(0.95)
         df['y'] = df['y'].clip(upper=local_max)
 
-        # Initializing the model and making sure that the model only accounts for yearly seasonality.
         m = Prophet(yearly_seasonality=True, weekly_seasonality=False, daily_seasonality=False)
         m.fit(df)
 
-        # Predicting for the next 5 months (April, May, June, July, August 2026).
         future = m.make_future_dataframe(periods=5, freq='MS')
         forecast = m.predict(future)
 
-        # Extracting the predictions for the 5 newly generated months and attaching the LSOA ID.
         prediction_rows = forecast.tail(5)[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].copy()
         prediction_rows['LSOA_ID'] = lsoa_id
 
@@ -56,7 +52,6 @@ def forecast_single_lsoa_summer(lsoa_id, historical_data):
 
 if __name__ == '__main__':
 
-    # Using config for the input data
     prophet_training_data = pd.read_csv(config.PROPHET_INPUT_CSV)
     prophet_training_data['Month'] = pd.to_datetime(prophet_training_data['Month'])
 
@@ -75,7 +70,6 @@ if __name__ == '__main__':
 
     print(f'Detected {total_cores} CPU cores. Performing the multi-month Prophet algorithm with {safe_cores} workers.')
 
-    # Using config to initialize the output file
     pd.DataFrame(columns=['ds', 'yhat', 'yhat_lower', 'yhat_upper', 'LSOA_ID']).to_csv(config.SUMMER_FORECAST_CSV,
                                                                                        index=False)
 
@@ -88,7 +82,6 @@ if __name__ == '__main__':
             lsoa_data = prophet_training_data[prophet_training_data['LSOA_ID'] == lsoa].copy()
             futures.append(executor.submit(forecast_single_lsoa_summer, lsoa, lsoa_data))
 
-        # Storing the forecasting results for each LSOA for the next 5 months.
         for i, future in enumerate(concurrent.futures.as_completed(futures)):
             result = future.result()
 
@@ -100,7 +93,6 @@ if __name__ == '__main__':
                 chunk_df['yhat_lower'] = chunk_df['yhat_lower'].clip(lower=0)
                 chunk_df['yhat_upper'] = chunk_df['yhat_upper'].clip(lower=0)
 
-                # Using config to append to the output file
                 chunk_df.to_csv(config.SUMMER_FORECAST_CSV, mode='a', header=False, index=False)
 
                 print(f'Safely saved {i + 1} / {len(all_lsoas)} LSOAs to disk.')
@@ -113,10 +105,8 @@ if __name__ == '__main__':
         chunk_df['yhat_lower'] = chunk_df['yhat_lower'].clip(lower=0)
         chunk_df['yhat_upper'] = chunk_df['yhat_upper'].clip(lower=0)
 
-        # Using config to append the final batch
         chunk_df.to_csv(config.SUMMER_FORECAST_CSV, mode='a', header=False, index=False)
         print("Final batch saved successfully.")
 
-    # Using config to read the saved results
     saved_df = pd.read_csv(config.SUMMER_FORECAST_CSV)
     print(saved_df.head(10))

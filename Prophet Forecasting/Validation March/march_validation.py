@@ -43,7 +43,7 @@ validation_df = df_forecast.merge(df_march, on='LSOA_ID', how='left')
 validation_df['actual_crime_score'] = validation_df['actual_crime_score'].fillna(0)
 
 #Dropping LSOAs where Prophet made no prediction (fair comparison).
-#clean_validation_df = validation_df[validation_df['yhat'] > 0]
+
 clean_validation_df = validation_df[(validation_df['yhat'] > 0) & (validation_df['actual_crime_score'] > 0)]
 
 #Calculating mean absolute error.
@@ -55,7 +55,6 @@ print(f"Valid LSOAs Evaluated: {len(clean_validation_df)}")
 print(f"LSOAs Excluded: {len(validation_df) - len(clean_validation_df)}")
 print(f"Mean Absolute Error: {mae:.2f} Crime Intensity Score Points")
 
-# --- Append this to the bottom of your march_validation.py script ---
 
 # Calculate the 20th and 80th percentiles of the actual crime scores
 q20 = clean_validation_df['actual_crime_score'].quantile(0.20)
@@ -71,7 +70,6 @@ mae_low = mean_absolute_error(low_crime['actual_crime_score'], low_crime['yhat']
 mae_mid = mean_absolute_error(mid_crime['actual_crime_score'], mid_crime['yhat'])
 mae_high = mean_absolute_error(high_crime['actual_crime_score'], high_crime['yhat'])
 
-print("\n--- Stratified Validation Results (Spatial Heterogeneity) ---")
 print(f"Bottom 20%")
 print(f"  Count: {len(low_crime)} LSOAs")
 print(f"  MAE:   {mae_low:.2f} Crime Intensity Points")

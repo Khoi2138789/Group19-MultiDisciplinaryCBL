@@ -10,14 +10,13 @@ import config
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
-    # Dynamically placing the output folder in the project root
+
     output_folder = os.path.join(config.SPATIAL_DIR, "pdf_report_maps")
     os.makedirs(output_folder, exist_ok=True)
     print(f"Output directory '{output_folder}/' is ready.")
 
     print("Loading geographic shapefile...")
 
-    # Using config for the LSOA boundaries
     map_path = config.LSOA_SHAPEFILE
     gdf_map = gpd.read_file(map_path)
     gdf_map = gdf_map.rename(columns={'LSOA21CD': 'LSOA_ID'})
@@ -26,7 +25,6 @@ if __name__ == '__main__':
     w = libpysal.weights.Queen.from_dataframe(gdf_map)
     w.transform = 'R'
 
-    # Using config for the Prophet forecast results
     df_predictions = pd.read_csv(config.SUMMER_FORECAST_CSV)
     df_predictions['ds'] = pd.to_datetime(df_predictions['ds'])
 

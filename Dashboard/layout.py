@@ -7,13 +7,9 @@ import config
 
 MAP_FILE = os.path.join(config.DASHBOARD_DIR, "precompiled_map.json")
 
-print("Loading pre-compiled map into layout...")
 INITIAL_MAP = pio.read_json(MAP_FILE)
 INITIAL_MAP.update_traces(hoverinfo="none", hovertemplate=None)
 INITIAL_MAP.update_layout(dragmode="lasso")
-
-# Dynamic config-driven pathing for network structures
-# New code looking directly in the Dashboard folder
 PATROL_NETWORK_PATH = os.path.join(config.DASHBOARD_DIR, "lsoa_by_pfa.json")
 
 print("Loading patrol network mapping layer...")
@@ -82,7 +78,6 @@ def make_layout():
             dcc.Store(id="selected-lsoas", data=[]),
             dcc.Store(id="selected-time-window", data=None),
 
-            # HEADER
             html.Div(
                 style={
                     "height": "68px",
@@ -123,7 +118,6 @@ def make_layout():
                 ]
             ),
 
-            # MAIN CONTAINER
             html.Div(
                 id="main-workspace",
                 style={
@@ -135,7 +129,7 @@ def make_layout():
                     "boxSizing": "border-box"
                 },
                 children=[
-                    # MAP CARD
+
                     html.Div(
                         style=card_style(),
                         children=[
@@ -206,7 +200,6 @@ def make_layout():
                         ]
                     ),
 
-                    # PCP CARD
                     html.Div(
                         style=card_style(),
                         children=[
@@ -244,7 +237,6 @@ def make_layout():
                         ]
                     ),
 
-                    # BOXPLOT CARD
                     html.Div(
                         style=card_style(),
                         children=[
@@ -258,7 +250,6 @@ def make_layout():
                         ]
                     ),
 
-                    # LINE CHART CARD
                     html.Div(
                         style=card_style(),
                         children=[
@@ -272,7 +263,6 @@ def make_layout():
                         ]
                     ),
 
-                    # GRANULAR TABLE CARD
                     html.Div(
                         style=card_style(),
                         children=[
@@ -291,7 +281,6 @@ def make_layout():
                         ]
                     ),
 
-                    # PATROL CONTROL STATION
                     html.Div(
                         style=card_style(),
                         children=[
@@ -301,6 +290,20 @@ def make_layout():
                                 id="pfa-dropdown",
                                 options=[{"label": pfa, "value": pfa} for pfa in sorted(PFA_DATA.keys())],
                                 value=list(PFA_DATA.keys())[0],
+                                clearable=False,
+                                style={"marginBottom": "15px"}
+                            ),
+                            html.H5("Select Patrol Route for the Forecasted Month", style={"margin": "0 0 8px 0", "color": "#2c3e50"}),
+                            dcc.Dropdown(
+                                id="patrol-month-dropdown",
+                                options=[
+                                    {"label": "April 2026", "value": "04"},
+                                    {"label": "May 2026", "value": "05"},
+                                    {"label": "June 2026", "value": "06"},
+                                    {"label": "July 2026", "value": "07"},
+                                    {"label": "August 2026", "value": "08"}
+                                ],
+                                value="04",
                                 clearable=False,
                                 style={"marginBottom": "15px"}
                             ),
@@ -350,7 +353,6 @@ def make_layout():
                         ]
                     ),
 
-                    # CCTV PRIORITY REPORT CARD
                     html.Div(
                         style=card_style(),
                         children=[

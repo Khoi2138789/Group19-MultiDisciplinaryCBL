@@ -63,10 +63,6 @@ class Graph:
         self._nodes: Dict[str, Node] = {}
         self._adjacency: Dict[Node, Set[Node]] = {}
 
-    # -----------------------------------------------------
-    # NODE MANAGEMENT
-    # -----------------------------------------------------
-
     def add_node(self, node: Node) -> None:
         if node.id in self._nodes:
             raise ValueError("Node already exists in graph.")
@@ -78,7 +74,6 @@ class Graph:
         if node not in self._adjacency:
             return
 
-        # Remove all edges connected to node
         for neighbor in self._adjacency[node]:
             self._adjacency[neighbor].remove(node)
 

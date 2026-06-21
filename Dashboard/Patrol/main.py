@@ -28,42 +28,6 @@ SPREAD = 1000
 graph = Graph()
 nodes = []
 
-# # -----------------------------------------
-# # 1. CREATE RANDOM POINTS (NODES)
-# # -----------------------------------------
-
-# for _ in range(N_NODES):
-#     node = Node(
-#         value=random.random(),  # already in [0,1]
-#         x=random.uniform(-SPREAD, SPREAD),
-#         y=random.uniform(-SPREAD, SPREAD),
-#     )
-
-#     graph.add_node(node)
-#     nodes.append(node)
-
-# # -----------------------------------------
-# # 2. DELAUNAY TRIANGULATION
-# # -----------------------------------------
-
-# points = [(n.x, n.y) for n in nodes]
-# tri = Delaunay(points)
-
-# # -----------------------------------------
-# # 3. BUILD EDGES (PLANAR GRAPH)
-# # -----------------------------------------
-
-# for simplex in tri.simplices:
-#     for i in range(3):
-#         a = nodes[simplex[i]]
-#         b = nodes[simplex[(i + 1) % 3]]
-
-#         graph.add_edge(a, b)
-
-# # -----------------------------------------
-# # 4. RUN VISUALIZER
-# # -----------------------------------------
-
 
 data = [
     {
@@ -85,7 +49,6 @@ data = [
 graph = Graph()
 nodes_by_id = {}
 
-# create nodes
 for item in data:
     node = Node(
         _id=item["id"],
@@ -97,7 +60,6 @@ for item in data:
     graph.add_node(node)
     nodes_by_id[node.id] = node
 
-# connect nodes
 for item in data:
     source = nodes_by_id[item["id"]]
 
@@ -112,17 +74,10 @@ start = nodes_by_id["1"]
 
 walker.set_start(start)
 
-# -----------------------------------------
-# RENDERER
-# -----------------------------------------
 
 renderer = GraphRenderer(graph)
 renderer.attach_simulation(walker, path)
 renderer.centre_screen_to_node(start)
-
-# -----------------------------------------
-# MAIN LOOP WRAP
-# -----------------------------------------
 
 clock = pygame.time.Clock()
 running = True

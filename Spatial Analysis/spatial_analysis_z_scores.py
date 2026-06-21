@@ -10,23 +10,19 @@ import config
 warnings.filterwarnings('ignore')
 
 if __name__ == '__main__':
-    # Dynamically place output folder in project root
+
     output_folder = os.path.join(config.SPATIAL_DIR, "pdf_report_maps_zscores")
     os.makedirs(output_folder, exist_ok=True)
 
-    # Use config for the shapefile
     map_path = config.LSOA_SHAPEFILE
     gdf_map = gpd.read_file(map_path)
     gdf_map = gdf_map.rename(columns={'LSOA21CD': 'LSOA_ID'})
 
-    # Filter out Wales. English LSOA codes start with E.
     gdf_map = gdf_map[gdf_map['LSOA_ID'].str.startswith('E')]
 
-    print("Compute the national geographic borders (this takes a minute, but only happens once)...")
     w = libpysal.weights.Queen.from_dataframe(gdf_map)
     w.transform = 'R'
 
-    # Use config for the Prophet forecast results
     df_predictions = pd.read_csv(config.SUMMER_FORECAST_CSV)
     df_predictions['ds'] = pd.to_datetime(df_predictions['ds'])
 
@@ -53,7 +49,6 @@ if __name__ == '__main__':
         monthly_map_data['p_value'] = gi_star.p_sim
 
         csv_filename = f"z_scores_{month_str}.csv"
-        # Dynamically route the CSV export to the forecasting results folder
         csv_output_path = os.path.join(config.FORECAST_RESULTS_DIR, csv_filename)
         monthly_map_data[['LSOA_ID', 'z_score']].to_csv(csv_output_path, index=False)
 

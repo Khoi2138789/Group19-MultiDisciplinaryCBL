@@ -4,11 +4,8 @@ import plotly.graph_objects as go
 import numpy as np
 import json
 from dash import html
-
-# Central memory injection triggered exactly once on startup
 from data import load_and_prepare_data
 GDF_MASTER, DF_FORECAST, DF_HISTORICAL, CRIME_AXES, MOMENTUM_AXES, BAKED_GEOJSON = load_and_prepare_data()
-
 from layout import PFA_DATA
 from Patrol.graph import Graph, Node
 from Patrol.path import Path
@@ -153,7 +150,6 @@ def register_callbacks(app):
         Input("selected-time-window", "data")
     )
     def update_table(selected_lsoas, time_window):
-        # CHANGED: Removed .head(100) - now shows ALL LSOAs by default
         plot_df = GDF_MASTER[GDF_MASTER["LSOA_ID"].isin(selected_lsoas)] if selected_lsoas else GDF_MASTER
 
         if time_window:
@@ -210,7 +206,6 @@ def register_callbacks(app):
         plot_df = plot_df.merge(month_yhat, on="LSOA_ID", how="left").replace([np.inf, -np.inf], 0).fillna(0)
         axes = MOMENTUM_AXES + ["target_month_yhat"] if mode == "momentum" else CRIME_AXES + ["target_month_yhat"]
 
-        # CHANGED: Now samples 5000 random LSOAs instead of picking the top 1500
         if not selected_lsoas and len(plot_df) > 5000:
             plot_df = plot_df.sample(n=5000, random_state=42)
 
@@ -318,24 +313,33 @@ def register_callbacks(app):
         print("generating patrol network graph json")
 
         return html.Pre(json.dumps(walked_path, indent=2))
-    
+
     @app.callback(
         Output("trail-line", "positions"),
         Input("generate-patrol-map", "n_clicks"),
         State("pfa-dropdown", "value"),
         State("start-lsoa-dropdown", "value"),
         State("patrol-length", "value"),
+        State("patrol-month-dropdown", "value"),
         prevent_initial_call=True,
     )
-    def show_trail(n_clicks, selected_pfa, start_lsoa, patrol_length):
 
-        print("generating patrol network graph map")
+    def show_trail(n_clicks, selected_pfa, start_lsoa, patrol_length, selected_month):
+
+        print(f"generating patrol network graph map for month: {selected_month}")
         graph = Graph()
         nodes_by_id = {}
         lsoas = PFA_DATA[selected_pfa]
 
         for item in lsoas:
-            node = Node(_id=item["lsoa_code"], value=1 / (1 + np.exp(-item["z_score"])), lat=item["lat"], lon=item["long"])
+            z_score_val = item["all_z_scores"].get(selected_month, 0)
+
+            node = Node(
+                _id=item["lsoa_code"],
+                value=1 / (1 + np.exp(-z_score_val)),
+                lat=item["lat"],
+                lon=item["lon"]
+            )
             graph.add_node(node)
             nodes_by_id[node.id] = node
 
@@ -347,7 +351,7 @@ def register_callbacks(app):
                     continue
                 target = nodes_by_id[nid]
                 graph.add_edge(source, target)
-        
+
         path = Path(memory=5)
         walker = Walker(graph, path)
         start = nodes_by_id[start_lsoa]
