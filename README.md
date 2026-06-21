@@ -72,7 +72,7 @@ The running system is split into two parts:
 
 4. **Download the Datasets**
    
-   Download the required datasets via the provided external zip link, extract them and place the data within the obtained validation folders in the corresponding validation folders with the same name in the folder named `Prophet Forecasting`. The `police` folder should be placed in the `Datasets` folder after which this folder should be placed in the root directory directly.
+   Download the required datasets via the provided external zip link which can be found in the report. Extract the files and place the data within the obtained validation folders in the corresponding validation folders with the same name in the folder named `Prophet Forecasting`. The `police` folder should be placed in the `Datasets` folder after which this folder should be placed in the root directory directly.
 
 
 
