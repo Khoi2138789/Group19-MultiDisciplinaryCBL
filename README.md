@@ -14,7 +14,7 @@ The running system is split into two parts:
 ```text
 .
 ├── Contextual Demand/
-│   └── crime_IMD_correlation.ipynb              # Correlations relating to deptrivations
+│   └── crime_IMD_correlation.ipynb              # Correlations relating to deprivations
 ├── Dashboard/                                   # Web app logic, callbacks and layout
 │   ├── Patrol/                                  # Graph code, node navigation and walker logic
 │   ├── assets/                                  # Static assets and simplified geometries
